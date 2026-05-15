@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>מונדיאל 2026 – וויסוצקי</title>
+<title>מונדיאל 2026 – קבוצת ויסוצקי</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh}
@@ -256,19 +256,13 @@ function render(){
 function renderLogin(app){
   const wrap=el("div");
   wrap.style.cssText="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);padding:24px";
-  // Admin btn
-  const adminBtn=el("button","chip");
-  adminBtn.style.cssText="position:fixed;top:14px;left:16px;z-index:50;font-size:12px;font-weight:600";
-  adminBtn.textContent="⚙️ ניהול";
-  adminBtn.onclick=()=>renderAdminLoginOverlay();
-  wrap.appendChild(adminBtn);
 
   wrap.innerHTML+=`
   <div style="width:100%;max-width:400px">
     <div style="text-align:center;margin-bottom:28px">
       <div style="font-size:56px;margin-bottom:10px">🏆</div>
       <h1 style="font-size:24px;font-weight:800;color:var(--text);margin:0 0 4px">מונדיאל 2026</h1>
-      <p style="color:var(--muted);font-size:14px;margin:0">תחרות ניחושים – וויסוצקי גרופ</p>
+      <p style="color:var(--muted);font-size:14px;margin:0">תחרות ניחושים – קבוצת ויסוצקי</p>
     </div>
     <div style="background:var(--surface);border-radius:20px;border:0.5px solid var(--border);padding:22px 20px;display:flex;flex-direction:column;gap:14px">
       <div>
@@ -291,11 +285,15 @@ function renderLogin(app){
       <div id="ln-error" class="error" style="display:none"></div>
       <button id="ln-submit" class="btn" disabled>המשך ←</button>
     </div>
-    <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:14px">הימורים לצורך כיף בלבד · ללא כסף אמיתי</p>
+    <button id="admin-entry-btn" style="display:block;width:100%;margin-top:10px;padding:10px;border-radius:10px;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer">⚙️ כניסה למנהל</button>
+    <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px">הימורים לצורך כיף בלבד · ללא כסף אמיתי</p>
   </div>`;
   app.appendChild(wrap);
-  // Re-append admin btn after innerHTML
-  wrap.insertBefore(adminBtn, wrap.firstChild);
+  // Wire admin button (now inside the form, not fixed)
+  setTimeout(()=>{
+    const adminEntryBtn=qs("#admin-entry-btn");
+    if(adminEntryBtn) adminEntryBtn.onclick=()=>renderAdminLoginOverlay();
+  },0);
 
   let isNew=null, selDept="";
   const nameIn=()=>qs("#ln-name");
