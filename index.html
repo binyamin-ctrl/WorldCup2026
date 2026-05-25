@@ -263,6 +263,21 @@ function calcPoints(user,matches,scorers,prizes,winnerResult){
   return pts;
 }
 
+// חישוב וחידוש נקודות לכל המשתמשים ב-Firebase
+async function recalcAllPoints(){
+  const allUsers=await fsGetAllUsers();
+  const topScorer=state.prizes.topScorer||null;
+  const winnerResult=state.prizes.winner||null;
+  const updates=allUsers.map(async u=>{
+    const pts=calcPoints(u,state.matches,{topScorer},state.prizes,winnerResult);
+    if(u.points!==pts){
+      await fsSaveUser({...u,points:pts});
+    }
+  });
+  await Promise.all(updates);
+  console.log("✅ נקודות עודכנו לכל המשתמשים");
+}
+
 // ── Render engine ─────────────────────────────────────────────────────────────
 function render(){
   const app=qs("#app");
@@ -284,9 +299,9 @@ function renderLogin(app){
   wrap.innerHTML+=`
   <div style="width:100%;max-width:400px">
     <div style="text-align:center;margin-bottom:28px">
-      <img src="${WISSOTZKY_LOGO}" alt="Wissotzky Group" style="height:72px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto"/>
+      <img src="${WISSOTZKY_LOGO}" alt="Wissotzky" style="height:72px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto"/>
       <h1 style="font-size:24px;font-weight:800;color:var(--text);margin:0 0 4px">מונדיאל 2026</h1>
-      <p style="color:var(--muted);font-size:14px;margin:0">תחרות ניחושים – ויסוצקי </p>
+      <p style="color:var(--muted);font-size:14px;margin:0">תחרות ניחושים – ויסוצקי</p>
     </div>
     <div style="background:var(--surface);border-radius:20px;border:0.5px solid var(--border);padding:22px 20px;display:flex;flex-direction:column;gap:14px">
       <div>
@@ -805,6 +820,18 @@ async function renderAdminContent(content){
 }
 
 function renderAdminResults(content){
+  // כפתור חישוב נקודות מחדש
+  const recalcBtn=el("button","btn");
+  recalcBtn.style.cssText="margin-bottom:10px;background:var(--green);font-size:13px;padding:10px";
+  recalcBtn.textContent="🔄 חשב נקודות מחדש לכל המשתמשים";
+  recalcBtn.onclick=async()=>{
+    recalcBtn.textContent="...מחשב";recalcBtn.disabled=true;
+    await recalcAllPoints();
+    recalcBtn.textContent="✅ נקודות עודכנו!";
+    setTimeout(()=>{recalcBtn.textContent="🔄 חשב נקודות מחדש לכל המשתמשים";recalcBtn.disabled=false;},2500);
+  };
+  content.appendChild(recalcBtn);
+
   const tabs=el("div");tabs.style.cssText="display:flex;gap:5px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px";
   Object.keys(GROUPS).forEach(g=>{
     const done=state.matches.filter(m=>m.group===g&&m.result).length;
@@ -838,12 +865,16 @@ window.setResult=async(id,val)=>{
   const m=state.matches.find(m=>m.id===id);if(!m)return;
   m.result=val;m.locked=true;
   await fsSaveSettings({matches:state.matches.map(m=>({id:m.id,result:m.result||null,locked:!!m.locked}))});
+  // חישוב נקודות אוטומטי לכל המשתמשים
+  await recalcAllPoints();
   renderAdminResultsRefresh();
 };
 window.clearResult=async(id)=>{
   const m=state.matches.find(m=>m.id===id);if(!m)return;
   m.result=null;m.locked=false;
   await fsSaveSettings({matches:state.matches.map(m=>({id:m.id,result:m.result||null,locked:!!m.locked}))});
+  // עדכון נקודות מחדש אחרי ביטול תוצאה
+  await recalcAllPoints();
   renderAdminResultsRefresh();
 };
 function renderAdminResultsRefresh(){
