@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>מונדיאל 2026 – וויסוצקי</title>
+<title>מונדיאל 2026 – ויסוצקי</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh}
@@ -286,7 +286,7 @@ function renderLogin(app){
     <div style="text-align:center;margin-bottom:28px">
       <img src="${WISSOTZKY_LOGO}" alt="Wissotzky Group" style="height:72px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto"/>
       <h1 style="font-size:24px;font-weight:800;color:var(--text);margin:0 0 4px">מונדיאל 2026</h1>
-      <p style="color:var(--muted);font-size:14px;margin:0">תחרות ניחושים – וויסוצקי גרופ</p>
+      <p style="color:var(--muted);font-size:14px;margin:0">תחרות ניחושים – ויסוצקי </p>
     </div>
     <div style="background:var(--surface);border-radius:20px;border:0.5px solid var(--border);padding:22px 20px;display:flex;flex-direction:column;gap:14px">
       <div>
@@ -778,7 +778,14 @@ function renderAdmin(){
   const tabBar=el("div","tab-bar");tabBar.style.margin="10px 16px 4px";
   [["results","תוצאות"],["users","משתמשים"],["depts","מחלקות"],["scorers","מלך שערים"],["prizes","פרסים"],["security","🔐 אבטחה"]].forEach(([id,label])=>{
     const b=el("button","tab-btn"+(state.adminTab===id?" active":""));b.textContent=label;
-    b.onclick=()=>{state.adminTab=id;renderAdminContent(content);};tabBar.appendChild(b);
+    b.onclick=()=>{
+      state.adminTab=id;
+      // מרנדר מחדש את כל הפאנל כדי לעדכן את הסימון
+      const ov=qs("#admin-overlay");
+      if(ov){ov.remove();}
+      renderAdmin();
+    };
+    tabBar.appendChild(b);
   });
   overlay.appendChild(tabBar);
 
