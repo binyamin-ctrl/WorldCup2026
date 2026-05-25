@@ -1,14 +1,15 @@
+
 <!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>מונדיאל 2026 – קבוצת ויסוצקי</title>
+<title>מונדיאל 2026 - ויסוצקי</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh}
-:root{--bg:#f2f4f8;--surface:#fff;--border:rgba(0,0,0,0.08);--text:#18192e;--muted:#7a7e96;--accent:#3b62f5;--chip:#eef0f6;--green:#0e9f5b;--red:#e53935;--gold:#F0B429;--silver:#B0BEC5;--bronze:#CD7F32}
-.dark{--bg:#0e1118;--surface:#181c27;--border:rgba(255,255,255,0.09);--text:#eef0f8;--muted:#7b7f96;--accent:#4f7eff;--chip:#22273a;--green:#1a7a4a;--red:#7a1a1a}
+:root{--bg:#f0f7f0;--surface:#fff;--border:rgba(0,0,0,0.08);--text:#0d2b0d;--muted:#4a7a4a;--accent:#006633;--chip:#e0f0e0;--green:#006633;--red:#e53935;--gold:#F0B429;--silver:#B0BEC5;--bronze:#CD7F32}
+.dark{--bg:#071a07;--surface:#0d2b0d;--border:rgba(255,255,255,0.09);--text:#e0f0e0;--muted:#4a9a4a;--accent:#00aa55;--chip:#0d3b0d;--green:#00aa55;--red:#7a1a1a}
 button{cursor:pointer;font-family:inherit;direction:rtl}
 input{font-family:inherit;direction:rtl}
 .screen{min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
@@ -64,7 +65,7 @@ const app = initializeApp({
 const db = getFirestore(app);
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const ADMIN_PASSWORD = "WissWC2026!";
+// הערה: סיסמת המנהל שמורה ב-Firebase בלבד (settings/admin)
 const DEPARTMENTS = ["מטה","שרשרת אספקה","מפעל","כספים ומערכות מידע","שיווק"];
 const DEFAULT_SCORERS = ["קיליאן מבאפה (צרפת)","אירלינג הולאנד (נורבגיה)","ויניסיוס ג'וניור (ברזיל)","לאמין יאמאל (ספרד)","הארי קיין (אנגליה)","ג'וד בלינגהאם (אנגליה)","פיל פודן (אנגליה)","רודריגו (ברזיל)","מוחמד סאלח (מצרים)","ליאו מסי (ארגנטינה)"];
 const GROUPS = {"א":["מקסיקו","דרום קוריאה","דרום אפריקה","צ'כיה"],"ב":["קנדה","שוויץ","קטאר","בוסניה והרצגובינה"],"ג":["ברזיל","סקוטלנד","מרוקו","האיטי"],"ד":["ארצות הברית","אוסטרליה","פרגוואי","טורקיה"],"ה":["גרמניה","אקוודור","חוף השנהב","קוראסאו"],"ו":["הולנד","יפן","תוניסיה","שוודיה"],"ז":["בלגיה","מצרים","איראן","ניו זילנד"],"ח":["ספרד","אורוגוואי","ערב הסעודית","כף ורדה"],"ט":["צרפת","סנגל","נורבגיה","עיראק"],"י":["ארגנטינה","אלג'יריה","אוסטריה","ירדן"],"יא":["פורטוגל","קולומביה","הרפובליקה הדמוקרטית של קונגו","אוזבקיסטן"],"יב":["אנגליה","קרואטיה","גאנה","פנמה"]};
@@ -262,7 +263,7 @@ function renderLogin(app){
     <div style="text-align:center;margin-bottom:28px">
       <div style="font-size:56px;margin-bottom:10px">🏆</div>
       <h1 style="font-size:24px;font-weight:800;color:var(--text);margin:0 0 4px">מונדיאל 2026</h1>
-      <p style="color:var(--muted);font-size:14px;margin:0">תחרות ניחושים – קבוצת ויסוצקי</p>
+      <p style="color:var(--muted);font-size:14px;margin:0">תחרות ניחושים – וויסוצקי גרופ</p>
     </div>
     <div style="background:var(--surface);border-radius:20px;border:0.5px solid var(--border);padding:22px 20px;display:flex;flex-direction:column;gap:14px">
       <div>
@@ -276,11 +277,11 @@ function renderLogin(app){
       </div>
       <div id="ln-pwd-wrap" style="display:none">
         <label id="ln-pwd-label" style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">סיסמה</label>
-        <input id="ln-pwd" class="input" type="password" placeholder="לפחות 4 תווים" style="text-align:center;letter-spacing:2px"/>
+        <input id="ln-pwd" class="input" type="password" placeholder="כאן מקלידים סיסמה" style="text-align:center;letter-spacing:2px"/>
       </div>
       <div id="ln-pwd2-wrap" style="display:none">
         <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">אימות סיסמה</label>
-        <input id="ln-pwd2" class="input" type="password" placeholder="הזן שוב" style="text-align:center;letter-spacing:2px"/>
+        <input id="ln-pwd2" class="input" type="password" placeholder="כאן מקלידים שוב לאימות" style="text-align:center;letter-spacing:2px"/>
       </div>
       <div id="ln-error" class="error" style="display:none"></div>
       <button id="ln-submit" class="btn" disabled>המשך ←</button>
@@ -365,9 +366,17 @@ function renderAdminLoginOverlay(){
   </div>`;
   document.body.appendChild(overlay);
   qs("#adm-cancel").onclick=()=>overlay.remove();
-  qs("#adm-ok").onclick=()=>{
-    if(qs("#adm-pwd").value===ADMIN_PASSWORD){overlay.remove();renderAdmin();}
-    else{qs("#adm-err").textContent="סיסמה שגויה";qs("#adm-err").style.display="block";}
+  qs("#adm-ok").onclick=async()=>{
+    const entered=qs("#adm-pwd").value;
+    qs("#adm-ok").textContent="...";qs("#adm-ok").disabled=true;
+    try{
+      const d=await getDoc(doc(db,"settings","admin"));
+      const stored=d.exists()?d.data().password:null;
+      if(stored && entered===stored){overlay.remove();renderAdmin();}
+      else{qs("#adm-err").textContent="סיסמה שגויה";qs("#adm-err").style.display="block";qs("#adm-ok").textContent="כניסה";qs("#adm-ok").disabled=false;}
+    }catch(e){
+      qs("#adm-err").textContent="שגיאת חיבור, נסה שנית";qs("#adm-err").style.display="block";qs("#adm-ok").textContent="כניסה";qs("#adm-ok").disabled=false;
+    }
   };
 }
 
@@ -396,7 +405,7 @@ function renderScreen(scr){
 
   // BottomNav
   const nav=el("div","bottom-nav");
-  [["matches","⚽","משחקים"],["scorer","👟","מלך שערים"],["winner","🌍","אלוף"],["leaderboard","🏆","דירוג"],["prizes","🎁","פרסים"],["profile","👤","פרופיל"]].forEach(([id,emoji,label])=>{
+  [["matches","⚽","משחקים"],["scorer","👟","מלך שערים"],["winner","🌍","אלופת"],["leaderboard","🏆","דירוג"],["prizes","🎁","פרסים"],["profile","👤","פרופיל"]].forEach(([id,emoji,label])=>{
     const b=el("button","nav-btn"+(state.screen===id?" active":""));
     b.innerHTML=`<span class="nav-emoji">${emoji}</span>${label}`;
     b.onclick=()=>{state.screen=id;render();};
@@ -406,7 +415,7 @@ function renderScreen(scr){
 }
 
 function screenTitle(){
-  return{matches:"⚽ מונדיאל 2026",scorer:"👟 מלך השערים",winner:"🌍 אלוף המונדיאל",leaderboard:"🏆 טבלת דירוג",prizes:"🎁 פרסים",profile:"הפרופיל שלי"}[state.screen]||"";
+  return{matches:"⚽ מונדיאל 2026",scorer:"👟 מלך השערים",winner:"🌍 אלופת המונדיאל",leaderboard:"🏆 מי מוביל בטבלת הניחושים?",prizes:"🎁 פרסים",profile:"הפרופיל שלי"}[state.screen]||"";
 }
 
 // ── Matches screen ────────────────────────────────────────────────────────────
@@ -488,7 +497,7 @@ function renderKnockout(area){
 // ── Scorer screen ─────────────────────────────────────────────────────────────
 function renderScorer(area){
   const info=el("div","card");
-  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">מי יהיה מלך השערים? 🏅</p><p style="font-size:12px;color:var(--muted);margin:0">בחר שחקן אחד. אם ינצח – <strong style="color:var(--accent)">+5 נקודות בונוס!</strong></p>`;
+  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">מי יהיה מלך השערים? 👑</p><p style="font-size:12px;color:var(--muted);margin:0">בחר שחקן אחד. אם ינצח – <strong style="color:var(--accent)">+5 נקודות בונוס!</strong></p>`;
   area.appendChild(info);
   state.scorers.forEach(player=>{
     const sel=state.user.scorerBet===player;
@@ -503,7 +512,7 @@ function renderScorer(area){
 // ── Winner screen ─────────────────────────────────────────────────────────────
 function renderWinner(area){
   const info=el("div","card");
-  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">הימור אלוף המונדיאל 🏆</p><p style="font-size:12px;color:var(--muted);margin:0">בחר נבחרת אחת. אם תנצח – <strong style="color:var(--accent)">+10 נקודות בונוס!</strong></p>`;
+  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">הימור אלופת המונדיאל 🏆</p><p style="font-size:12px;color:var(--muted);margin:0">בחר נבחרת אחת. אם תנצח – <strong style="color:var(--accent)">+10 נקודות בונוס!</strong></p>`;
   area.appendChild(info);
   const search=el("input","input");search.placeholder="חיפוש נבחרת...";search.style.marginBottom="10px";
   area.appendChild(search);
@@ -526,7 +535,7 @@ function renderWinner(area){
 // ── Leaderboard screen ────────────────────────────────────────────────────────
 function renderLeaderboard(area){
   const tabBar=el("div","tab-bar");
-  [["personal","דירוג אישי"],["dept","דירוג מחלקות"]].forEach(([id,label])=>{
+  [["personal","דירוג אישי"],["dept","דירוג מחלקות"],["participation","🏅 תחרות השתתפות"]].forEach(([id,label])=>{
     const b=el("button","tab-btn"+(state.leaderTab===id?" active":""));b.textContent=label;
     b.onclick=()=>{state.leaderTab=id;renderLeaderboard(area);};tabBar.appendChild(b);
   });
@@ -544,7 +553,7 @@ function renderLeaderboard(area){
       <div style="text-align:left"><p style="margin:0;font-size:20px;font-weight:800;color:var(--accent)">${u.points||0}</p><p style="margin:0;font-size:10px;color:var(--muted)">נקודות</p></div>`;
       area.appendChild(card);
     });
-  } else {
+  } else if(state.leaderTab==="dept") {
     const deptMap={};
     DEPARTMENTS.forEach(d=>{deptMap[d]={name:d,total:0,count:0,members:[]};});
     state.liveUsers.forEach(u=>{if(deptMap[u.dept]){deptMap[u.dept].total+=(u.points||0);deptMap[u.dept].count++;deptMap[u.dept].members.push(u);}});
@@ -561,25 +570,117 @@ function renderLeaderboard(area){
       </div>${membersHTML?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;border-top:0.5px solid var(--border);padding-top:8px">${membersHTML}</div>`:""}`;
       area.appendChild(card);
     });
+  } else if(state.leaderTab==="participation"){
+    // תחרות השתתפות – אחוז נרשמים מכל מחלקה
+    const info=el("div","card");
+    info.style.cssText="border:1.5px solid var(--accent);margin-bottom:12px";
+    info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">🏅 תחרות ההשתתפות</p>
+      <p style="font-size:12px;color:var(--muted);margin:0">המחלקה עם האחוז הגבוה ביותר של נרשמים זוכה ב-Extra Happy Hour + <strong style="color:var(--accent)">+3 נקודות</strong> לכל חבר!</p>`;
+    area.appendChild(info);
+
+    const deptMap={};
+    DEPARTMENTS.forEach(d=>{deptMap[d]={name:d,registered:0};});
+    state.liveUsers.forEach(u=>{if(deptMap[u.dept])deptMap[u.dept].registered++;});
+
+    // נניח גודל מחלקה שווה – מציגים לפי מספר נרשמים (מנהל יכול לעדכן גודל מחלקה בהגדרות)
+    const deptSizes=state.prizes.deptSizes||{};
+    const sorted=Object.values(deptMap).map(d=>{
+      const total=deptSizes[d.name]||d.registered||1;
+      const pct=Math.round((d.registered/total)*100);
+      return{...d,total,pct};
+    }).sort((a,b)=>b.pct-a.pct);
+
+    sorted.forEach((d,i)=>{
+      const isFirst=i===0&&d.registered>0;
+      const card=el("div","card");
+      if(isFirst)card.style.cssText="background:var(--surface);border-radius:14px;border:2px solid var(--gold);padding:13px 15px;margin-bottom:10px";
+      const barPct=Math.min(d.pct,100);
+      card.innerHTML=`
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:${i<3?18:13}px">${i<3?medals[i]:i+1}</span>
+            <p style="margin:0;font-weight:700;font-size:14px;color:var(--text)">${d.name}</p>
+            ${isFirst?'<span style="font-size:11px;background:var(--gold);color:#fff;border-radius:6px;padding:2px 8px;font-weight:700">מובילים! 🎉</span>':""}
+          </div>
+          <div style="text-align:left">
+            <p style="margin:0;font-size:20px;font-weight:800;color:var(--accent)">${d.pct}%</p>
+            <p style="margin:0;font-size:10px;color:var(--muted)">${d.registered}${deptSizes[d.name]?"/"+deptSizes[d.name]:""} נרשמו</p>
+          </div>
+        </div>
+        <div style="background:var(--chip);border-radius:20px;height:8px;overflow:hidden">
+          <div style="background:var(--accent);height:100%;width:${barPct}%;border-radius:20px;transition:width .5s"></div>
+        </div>`;
+      area.appendChild(card);
+    });
+
+    const note=el("div","card");note.style.marginTop="6px";
+    note.innerHTML=`<p style="font-size:12px;color:var(--muted);margin:0;line-height:1.7">💡 האחוזים מחושבים על בסיס מספר הנרשמים. המנהל יכול להגדיר את גודל כל מחלקה במסך הניהול לחישוב מדויק.</p>`;
+    area.appendChild(note);
   }
 }
 
 // ── Prizes screen ─────────────────────────────────────────────────────────────
 function renderPrizes(area){
-  const pr=state.prizes;const hasPrizes=pr.first||pr.second||pr.third||pr.dept;
-  if(!hasPrizes){
-    area.innerHTML=`<div style="text-align:center;padding:50px 20px"><p style="font-size:48px;margin:0 0 12px">🎁</p><p style="font-weight:700;font-size:16px;color:var(--text);margin:0 0 6px">הפרסים יפורסמו בקרוב</p><p style="font-size:13px;color:var(--muted);margin:0">המנהל עדיין לא הגדיר את הפרסים</p></div>`;
-  } else {
-    [["first","🥇","מקום ראשון","var(--gold)"],["second","🥈","מקום שני","var(--silver)"],["third","🥉","מקום שלישי","var(--bronze)"],["dept","🏢","מחלקה מצטיינת","var(--accent)"]].forEach(([k,e,l,c])=>{
-      if(!pr[k])return;
-      const card=el("div","card");card.style.cssText=`display:flex;align-items:center;gap:14px;border:1.5px solid ${c}`;
-      card.innerHTML=`<div style="width:52px;height:52px;border-radius:50%;background:${c}22;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">${e}</div><div><p style="margin:0 0 3px;font-size:12px;font-weight:600;color:var(--muted)">${l}</p><p style="margin:0;font-size:17px;font-weight:800;color:var(--text)">${pr[k]}</p></div>`;
-      area.appendChild(card);
-    });
-  }
-  const rules=el("div","card");rules.style.marginTop="10px";
-  rules.innerHTML=`<p style="font-weight:700;font-size:13px;color:var(--text);margin:0 0 8px">מנגנון הניקוד</p><p style="font-size:12px;color:var(--muted);line-height:1.9;margin:0">✓ ניחוש תוצאה נכון: <strong>3 נקודות</strong><br>⚽ מלך השערים (גם תיקו): <strong>+5 בונוס</strong><br>🏆 ניחוש אלוף נכון: <strong>+10 בונוס</strong></p>`;
-  area.appendChild(rules);
+  // כותרת
+  const hero=el("div");
+  hero.style.cssText="text-align:center;padding:20px 16px 10px";
+  hero.innerHTML=`<p style="font-size:32px;margin:0 0 8px">🏆</p>
+    <h2 style="font-size:20px;font-weight:800;color:var(--text);margin:0 0 4px">צוברים נקודות – זוכים בפרסים!</h2>
+    <p style="font-size:13px;color:var(--muted);margin:0">כנסו, נחשו, תתחרו ותזכו</p>`;
+  area.appendChild(hero);
+
+  // פרסים קבועים
+  const prizes=[
+    {emoji:"🥇",label:"מקום ראשון",value:"ארוחה זוגית במסעדת שף",color:"var(--gold)"},
+    {emoji:"🥈",label:"מקום שני",value:"ארוחה משפחתית",color:"var(--silver)"},
+    {emoji:"🥉",label:"מקום שלישי",value:"ארוחת בוקר זוגית",color:"var(--bronze)"},
+    {emoji:"🏢",label:"מחלקה מצטיינת",value:"Extra Happy Hour לכל המחלקה 🎉",color:"var(--accent)"},
+    {emoji:"🏅",label:"מחלקה עם הכי הרבה משתתפים",value:"+3 נקודות לכל חבר + Extra Happy Hour",color:"var(--green)"},
+  ];
+
+  // פרסים מותאמים מניהול (עוקפים אם הוגדרו)
+  const custom=state.prizes;
+  if(custom.first)prizes[0].value=custom.first;
+  if(custom.second)prizes[1].value=custom.second;
+  if(custom.third)prizes[2].value=custom.third;
+  if(custom.dept)prizes[3].value=custom.dept;
+
+  prizes.forEach(p=>{
+    const card=el("div","card");
+    card.style.cssText=`display:flex;align-items:center;gap:14px;border:1.5px solid ${p.color};padding:14px 16px;margin-bottom:10px;border-radius:14px;background:var(--surface)`;
+    card.innerHTML=`<div style="width:52px;height:52px;border-radius:50%;background:${p.color}22;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">${p.emoji}</div>
+      <div><p style="margin:0 0 2px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">${p.label}</p>
+      <p style="margin:0;font-size:15px;font-weight:800;color:var(--text)">${p.value}</p></div>`;
+    area.appendChild(card);
+  });
+
+  // מנגנון צבירת נקודות
+  const scoring=el("div","card");
+  scoring.style.cssText="border:1.5px solid var(--accent);margin-top:6px;border-radius:14px;background:var(--surface);padding:16px";
+  scoring.innerHTML=`
+    <p style="font-weight:800;font-size:15px;color:var(--text);margin:0 0 12px;text-align:center">📊 איך צוברים נקודות?</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
+        <span style="font-size:13px;color:var(--text)">✅ ניחוש תוצאה נכונה (1X2)</span>
+        <span style="font-size:15px;font-weight:800;color:var(--accent)">+3 נק׳</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
+        <span style="font-size:13px;color:var(--text)">👟 ניחוש מלך השערים (גם תיקו)</span>
+        <span style="font-size:15px;font-weight:800;color:var(--accent)">+5 נק׳</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
+        <span style="font-size:13px;color:var(--text)">🌍 ניחוש אלופת המונדיאל</span>
+        <span style="font-size:15px;font-weight:800;color:var(--accent)">+10 נק׳</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
+        <span style="font-size:13px;color:var(--text)">🏅 מחלקה עם הכי הרבה משתתפים</span>
+        <span style="font-size:15px;font-weight:800;color:var(--accent)">+3 נק׳</span>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin:12px 0 0;text-align:center;line-height:1.7">
+      💡 ככל שמנחשים יותר משחקים – כך גדלים הסיכויים לנצח!<br>אל תשכחו להמר על מלך השערים ועל אלופת המונדיאל.
+    </p>`;
+  area.appendChild(scoring);
 }
 
 // ── Profile screen ────────────────────────────────────────────────────────────
@@ -615,7 +716,7 @@ function renderAdmin(){
   overlay.appendChild(tb);
 
   const tabBar=el("div","tab-bar");tabBar.style.margin="10px 16px 4px";
-  [["results","תוצאות"],["users","משתמשים"],["scorers","מלך שערים"],["prizes","פרסים"]].forEach(([id,label])=>{
+  [["results","תוצאות"],["users","משתמשים"],["scorers","מלך שערים"],["prizes","פרסים"],["security","🔐 אבטחה"]].forEach(([id,label])=>{
     const b=el("button","tab-btn"+(state.adminTab===id?" active":""));b.textContent=label;
     b.onclick=()=>{state.adminTab=id;renderAdminContent(content);};tabBar.appendChild(b);
   });
@@ -632,6 +733,7 @@ async function renderAdminContent(content){
   else if(state.adminTab==="users") await renderAdminUsers(content);
   else if(state.adminTab==="scorers") renderAdminScorers(content);
   else if(state.adminTab==="prizes") renderAdminPrizes(content);
+  else if(state.adminTab==="security") await renderAdminSecurity(content);
 }
 
 function renderAdminResults(content){
@@ -794,21 +896,72 @@ function renderAdminScorers(content){
 }
 
 function renderAdminPrizes(content){
-  const info=el("div","card");info.innerHTML=`<p style="font-size:13px;color:var(--muted);margin:0">הגדר את הפרסים שיוצגו לכל העובדים</p>`;
+  const info=el("div","card");info.innerHTML=`<p style="font-size:13px;color:var(--muted);margin:0">הגדר את הפרסים שיוצגו לכל העובדים (אופציונלי – יש פרסי ברירת מחדל)</p>`;
   content.appendChild(info);
   [["first","🥇 פרס מקום ראשון"],["second","🥈 פרס מקום שני"],["third","🥉 פרס מקום שלישי"],["dept","🏢 פרס מחלקה מצטיינת"],["winner","🏆 מנצח המונדיאל בפועל (לחישוב נקודות)"]].forEach(([k,label])=>{
     const wrap=el("div");wrap.style.marginTop="10px";
     wrap.innerHTML=`<label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">${label}</label><input id="pr-${k}" class="input" value="${state.prizes[k]||""}" placeholder="תאר את הפרס..."/>`;
     content.appendChild(wrap);
   });
-  const saveBtn=el("button","btn");saveBtn.style.marginTop="14px";saveBtn.textContent="שמור פרסים";
+
+  // גודל מחלקות לתחרות השתתפות
+  const sizeTitle=el("div","card");sizeTitle.style.marginTop="16px";
+  sizeTitle.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">🏅 גודל מחלקות (לתחרות ההשתתפות)</p><p style="font-size:12px;color:var(--muted);margin:0">הזן את מספר העובדים בכל מחלקה לחישוב אחוז ההשתתפות</p>`;
+  content.appendChild(sizeTitle);
+  const sizes=state.prizes.deptSizes||{};
+  DEPARTMENTS.forEach(d=>{
+    const wrap=el("div");wrap.style.marginTop="8px";
+    wrap.innerHTML=`<label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">${d}</label><input id="sz-${d}" class="input" type="number" min="1" value="${sizes[d]||""}" placeholder="מספר עובדים..." style="padding:8px 14px;font-size:13px"/>`;
+    content.appendChild(wrap);
+  });
+
+  const saveBtn=el("button","btn");saveBtn.style.marginTop="14px";saveBtn.textContent="שמור הכל";
   saveBtn.onclick=async()=>{
     const pr={first:qs("#pr-first").value,second:qs("#pr-second").value,third:qs("#pr-third").value,dept:qs("#pr-dept").value,winner:qs("#pr-winner").value};
+    const deptSizes={};
+    DEPARTMENTS.forEach(d=>{const v=qs("#sz-"+d);if(v&&v.value)deptSizes[d]=parseInt(v.value)||0;});
+    pr.deptSizes=deptSizes;
     state.prizes=pr;
     await fsSaveSettings({prizes:pr});
-    saveBtn.textContent="✓ נשמר!";setTimeout(()=>saveBtn.textContent="שמור פרסים",2000);
+    saveBtn.textContent="✓ נשמר!";setTimeout(()=>saveBtn.textContent="שמור הכל",2000);
   };
   content.appendChild(saveBtn);
+}
+
+// ── Admin Security Tab ────────────────────────────────────────────────────────
+async function renderAdminSecurity(content){
+  const info=el("div","card");
+  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">🔐 סיסמת מנהל</p><p style="font-size:12px;color:var(--muted);margin:0">הסיסמה שמורה ב-Firebase בלבד ואינה גלויה בקוד</p>`;
+  content.appendChild(info);
+
+  // Show current (masked)
+  const d=await getDoc(doc(db,"settings","admin"));
+  const hasPwd=d.exists()&&d.data().password;
+
+  const form=el("div","card");form.style.marginTop="10px";
+  form.innerHTML=`
+    <p style="font-size:13px;color:var(--muted);margin:0 0 10px">
+      ${hasPwd?"סיסמה קיימת: ••••••••":"⚠️ לא הוגדרה סיסמה עדיין – הגדר עכשיו!"}
+    </p>
+    <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">סיסמה חדשה</label>
+    <input id="new-admin-pwd" class="input" type="password" placeholder="הזן סיסמה חדשה" style="text-align:center;letter-spacing:2px;margin-bottom:8px"/>
+    <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">אימות סיסמה</label>
+    <input id="new-admin-pwd2" class="input" type="password" placeholder="הזן שוב" style="text-align:center;letter-spacing:2px;margin-bottom:10px"/>
+    <div id="sec-err" class="error" style="display:none;margin-bottom:8px"></div>
+    <button id="save-admin-pwd" class="btn" style="margin-top:0">שמור סיסמה ב-Firebase</button>`;
+  content.appendChild(form);
+
+  qs("#save-admin-pwd").onclick=async()=>{
+    const p1=qs("#new-admin-pwd").value;
+    const p2=qs("#new-admin-pwd2").value;
+    qs("#sec-err").style.display="none";
+    if(p1.length<4){qs("#sec-err").textContent="סיסמה חייבת להכיל לפחות 4 תווים";qs("#sec-err").style.display="block";return;}
+    if(p1!==p2){qs("#sec-err").textContent="הסיסמאות אינן תואמות";qs("#sec-err").style.display="block";return;}
+    qs("#save-admin-pwd").textContent="...";qs("#save-admin-pwd").disabled=true;
+    await setDoc(doc(db,"settings","admin"),{password:p1});
+    qs("#save-admin-pwd").textContent="✓ נשמר ב-Firebase!";
+    setTimeout(()=>renderAdminSecurity(content),1500);
+  };
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
