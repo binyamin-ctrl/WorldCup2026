@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>מונדיאל 2026 –ויסוצקי</title>
+<title>מונדיאל 2026 – ויסוצקי</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh}
@@ -65,7 +65,10 @@ const db = getFirestore(app);
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 // הערה: סיסמת המנהל שמורה ב-Firebase בלבד (settings/admin)
-const DEPARTMENTS = ["מטה","שרשרת אספקה","מפעל","כספים ומערכות מידע","שיווק"];
+const DEFAULT_DEPARTMENTS = ["מטה","שרשרת אספקה","מפעל","כספים ומערכות מידע","שיווק"];
+
+// helper – always read from state so admin changes take effect live
+function getDepts(){ return state.departments||DEFAULT_DEPARTMENTS; }
 const DEFAULT_SCORERS = ["קיליאן מבאפה (צרפת)","אירלינג הולאנד (נורבגיה)","ויניסיוס ג'וניור (ברזיל)","לאמין יאמאל (ספרד)","הארי קיין (אנגליה)","ג'וד בלינגהאם (אנגליה)","פיל פודן (אנגליה)","רודריגו (ברזיל)","מוחמד סאלח (מצרים)","ליאו מסי (ארגנטינה)"];
 const GROUPS = {"א":["מקסיקו","דרום קוריאה","דרום אפריקה","צ'כיה"],"ב":["קנדה","שוויץ","קטאר","בוסניה והרצגובינה"],"ג":["ברזיל","סקוטלנד","מרוקו","האיטי"],"ד":["ארצות הברית","אוסטרליה","פרגוואי","טורקיה"],"ה":["גרמניה","אקוודור","חוף השנהב","קוראסאו"],"ו":["הולנד","יפן","תוניסיה","שוודיה"],"ז":["בלגיה","מצרים","איראן","ניו זילנד"],"ח":["ספרד","אורוגוואי","ערב הסעודית","כף ורדה"],"ט":["צרפת","סנגל","נורבגיה","עיראק"],"י":["ארגנטינה","אלג'יריה","אוסטריה","ירדן"],"יא":["פורטוגל","קולומביה","הרפובליקה הדמוקרטית של קונגו","אוזבקיסטן"],"יב":["אנגליה","קרואטיה","גאנה","פנמה"]};
 const ALL_TEAMS = Object.values(GROUPS).flat();
@@ -174,7 +177,7 @@ function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className
 function shortName(n){return n.length>6?n.slice(0,6)+"…":n;}
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let state={user:null,screen:"matches",dark:false,activeGroup:"א",matches:[...SCHEDULE],scorers:[...DEFAULT_SCORERS],prizes:{first:"",second:"",third:"",dept:""},adminTab:"results",adminGroup:"א",userFilter:"all",leaderTab:"personal",allUsers:[],liveUsers:[]};
+let state={user:null,screen:"matches",dark:false,activeGroup:"א",matches:[...SCHEDULE],scorers:[...DEFAULT_SCORERS],departments:[...DEFAULT_DEPARTMENTS],prizes:{first:"",second:"",third:"",dept:""},adminTab:"results",adminGroup:"א",userFilter:"all",leaderTab:"personal",allUsers:[],liveUsers:[]};
 
 // ── Firestore ─────────────────────────────────────────────────────────────────
 async function fsGetUser(name){
@@ -281,7 +284,7 @@ function renderLogin(app){
   wrap.innerHTML+=`
   <div style="width:100%;max-width:400px">
     <div style="text-align:center;margin-bottom:28px">
-      <img src="${WISSOTZKY_LOGO}" alt="Wissotzky Group" style="height:70px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto"/>
+      <img src="${WISSOTZKY_LOGO}" alt="Wissotzky Group" style="height:70px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;border-radius:8px;background:white;padding:4px"/>
       <h1 style="font-size:24px;font-weight:800;color:var(--text);margin:0 0 4px">מונדיאל 2026</h1>
       <p style="color:var(--muted);font-size:14px;margin:0">תחרות ניחושים – ויסוצקי </p>
     </div>
@@ -307,7 +310,7 @@ function renderLogin(app){
       <button id="ln-submit" class="btn" disabled>המשך ←</button>
     </div>
     <button id="admin-entry-btn" style="display:block;width:100%;margin-top:10px;padding:10px;border-radius:10px;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer">⚙️ כניסה למנהל</button>
-    <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px">הימורים לצורך כיף בלבד · ללא כסף אמיתי</p>
+    <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px">אנחנו משחקים לכיף בלבד :)</p>
   </div>`;
   app.appendChild(wrap);
   // Wire admin button (now inside the form, not fixed)
@@ -327,7 +330,7 @@ function renderLogin(app){
 
   // Dept chips
   setTimeout(()=>{
-    DEPARTMENTS.forEach(d=>{
+    getDepts().forEach(d=>{
       const b=el("button","chip");b.textContent=d;
       b.onclick=()=>{selDept=d;deptChips().querySelectorAll("button").forEach(x=>x.classList.remove("active"));b.classList.add("active");checkReady();};
       deptChips().appendChild(b);
@@ -403,7 +406,7 @@ function renderAdminLoginOverlay(){
 function renderScreen(scr){
   // TopBar
   const tb=el("div","topbar");
-  const logoImg=el("img");logoImg.src=WISSOTZKY_LOGO;logoImg.style.cssText="height:32px;object-fit:contain;flex-shrink:0";
+  const logoImg=el("img");logoImg.src=WISSOTZKY_LOGO;logoImg.style.cssText="height:32px;object-fit:contain;flex-shrink:0;border-radius:6px;background:var(--surface);padding:2px";
   tb.appendChild(logoImg);
   const title=el("span","topbar-title");title.textContent=screenTitle();tb.appendChild(title);
   const darkBtn=el("button");
@@ -427,9 +430,9 @@ function renderScreen(scr){
 
   // BottomNav
   const nav=el("div","bottom-nav");
-  [["matches","⚽","משחקים"],["scorer","👟","מלך שערים"],["winner","🌍","אלופת"],["leaderboard","🏆","דירוג"],["prizes","🎁","פרסים"],["profile","👤","פרופיל"]].forEach(([id,emoji,label])=>{
+  [["matches","⚽","משחקים"],["scorer","👟","מלך שערים"],["winner","🌍","אלופת המונדיאל"],["leaderboard","🏆","דירוג"],["prizes","🎁","פרסים"],["profile","👤","פרופיל"]].forEach(([id,emoji,label])=>{
     const b=el("button","nav-btn"+(state.screen===id?" active":""));
-    b.innerHTML=`<span class="nav-emoji">${emoji}</span>${label}`;
+    b.innerHTML=`<span class="nav-emoji">${emoji}</span><span style="font-size:${label==="אלופת המונדיאל"?"7.5":"9"}px;white-space:nowrap">${label}</span>`;
     b.onclick=()=>{state.screen=id;render();};
     nav.appendChild(b);
   });
@@ -614,7 +617,7 @@ function renderLeaderboard(area){
     });
   } else if(state.leaderTab==="dept") {
     const deptMap={};
-    DEPARTMENTS.forEach(d=>{deptMap[d]={name:d,total:0,count:0,members:[]};});
+    getDepts().forEach(d=>{deptMap[d]={name:d,total:0,count:0,members:[]};});
     state.liveUsers.forEach(u=>{if(deptMap[u.dept]){deptMap[u.dept].total+=(u.points||0);deptMap[u.dept].count++;deptMap[u.dept].members.push(u);}});
     const sorted=Object.values(deptMap).map(d=>({...d,avg:d.count?Math.round(d.total/d.count):0})).sort((a,b)=>b.avg-a.avg);
     sorted.forEach((d,i)=>{
@@ -638,7 +641,7 @@ function renderLeaderboard(area){
     area.appendChild(info);
 
     const deptMap={};
-    DEPARTMENTS.forEach(d=>{deptMap[d]={name:d,registered:0};});
+    getDepts().forEach(d=>{deptMap[d]={name:d,registered:0};});
     state.liveUsers.forEach(u=>{if(deptMap[u.dept])deptMap[u.dept].registered++;});
 
     // נניח גודל מחלקה שווה – מציגים לפי מספר נרשמים (מנהל יכול לעדכן גודל מחלקה בהגדרות)
@@ -778,7 +781,7 @@ function renderAdmin(){
   overlay.appendChild(tb);
 
   const tabBar=el("div","tab-bar");tabBar.style.margin="10px 16px 4px";
-  [["results","תוצאות"],["users","משתמשים"],["scorers","מלך שערים"],["prizes","פרסים"],["security","🔐 אבטחה"]].forEach(([id,label])=>{
+  [["results","תוצאות"],["users","משתמשים"],["depts","מחלקות"],["scorers","מלך שערים"],["prizes","פרסים"],["security","🔐 אבטחה"]].forEach(([id,label])=>{
     const b=el("button","tab-btn"+(state.adminTab===id?" active":""));b.textContent=label;
     b.onclick=()=>{state.adminTab=id;renderAdminContent(content);};tabBar.appendChild(b);
   });
@@ -793,6 +796,7 @@ async function renderAdminContent(content){
   content.innerHTML="";
   if(state.adminTab==="results") renderAdminResults(content);
   else if(state.adminTab==="users") await renderAdminUsers(content);
+  else if(state.adminTab==="depts") renderAdminDepts(content);
   else if(state.adminTab==="scorers") renderAdminScorers(content);
   else if(state.adminTab==="prizes") renderAdminPrizes(content);
   else if(state.adminTab==="security") await renderAdminSecurity(content);
@@ -850,7 +854,7 @@ async function renderAdminUsers(content){
   const allBtn=el("button","chip"+(state.userFilter==="all"?" active":""));
   allBtn.textContent=`הכל (${allUsers.length})`;allBtn.style.flexShrink="0";
   allBtn.onclick=()=>{state.userFilter="all";renderAdminContent(content);};fBar.appendChild(allBtn);
-  DEPARTMENTS.forEach(d=>{
+  getDepts().forEach(d=>{
     const cnt=allUsers.filter(u=>u.dept===d).length;
     const b=el("button","chip"+(state.userFilter===d?" active":""));
     b.textContent=`${d} (${cnt})`;b.style.flexShrink="0";
@@ -892,7 +896,7 @@ function showAddUserForm(content,allUsers){
   </div>`;
   content.insertBefore(form,content.children[1]);
   let selDept="";
-  form.querySelectorAll && DEPARTMENTS.forEach(d=>{
+  form.querySelectorAll && getDepts().forEach(d=>{
     const b=el("button","chip");b.textContent=d;
     b.onclick=()=>{selDept=d;form.querySelectorAll("#add-dept-chips button").forEach(x=>x.classList.remove("active"));b.classList.add("active");};
     qs("#add-dept-chips").appendChild(b);
@@ -919,7 +923,7 @@ function showEditUserForm(content,allUsers,name){
   </div>`;
   content.insertBefore(form,content.children[1]);
   let selDept=u.dept;
-  DEPARTMENTS.forEach(d=>{
+  getDepts().forEach(d=>{
     const b=el("button","chip"+(d===selDept?" active":""));b.textContent=d;
     b.onclick=()=>{selDept=d;form.querySelectorAll("#edit-dept-chips button").forEach(x=>x.classList.remove("active"));b.classList.add("active");};
     qs("#edit-dept-chips").appendChild(b);
@@ -932,6 +936,58 @@ function showEditUserForm(content,allUsers,name){
     if(newName!==u.name){await fsDeleteUser(u.name);}
     await fsSaveUser(updated);form.remove();renderAdminContent(content);
   };
+}
+
+// ── Admin Departments Tab ─────────────────────────────────────────────────────
+function renderAdminDepts(content){
+  const depts=[...getDepts()];
+
+  const info=el("div","card");
+  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">🏢 ניהול מחלקות</p>
+    <p style="font-size:12px;color:var(--muted);margin:0">עדכן שמות מחלקות קיימות או הוסף מחלקות חדשות. שינויים ישפיעו על כל האפליקציה.</p>`;
+  content.appendChild(info);
+
+  const listDiv=el("div");listDiv.id="depts-list";listDiv.style.marginTop="10px";
+  content.appendChild(listDiv);
+
+  const renderList=()=>{
+    listDiv.innerHTML="";
+    depts.forEach((d,i)=>{
+      const row=el("div");row.style.cssText="display:flex;gap:8px;align-items:center;margin-bottom:8px";
+      const inp=el("input","input");inp.value=d;inp.style.cssText="flex:1;padding:9px 12px;font-size:13px";
+      inp.oninput=()=>{depts[i]=inp.value;};
+      const delBtn=el("button");delBtn.style.cssText="padding:8px 12px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--red);font-size:13px;flex-shrink:0";
+      delBtn.textContent="✕";
+      delBtn.onclick=()=>{
+        if(depts.length<=1){alert("חייבת להיות לפחות מחלקה אחת");return;}
+        depts.splice(i,1);renderList();
+      };
+      row.appendChild(inp);row.appendChild(delBtn);
+      listDiv.appendChild(row);
+    });
+  };
+  renderList();
+
+  // כפתור הוסף מחלקה
+  const addBtn=el("button");
+  addBtn.style.cssText="width:100%;padding:10px;border-radius:10px;border:1.5px dashed var(--border);background:transparent;color:var(--accent);font-weight:600;font-size:13px;cursor:pointer;margin-top:4px";
+  addBtn.textContent="+ הוסף מחלקה";
+  addBtn.onclick=()=>{depts.push("מחלקה חדשה");renderList();};
+  content.appendChild(addBtn);
+
+  // שמור
+  const saveBtn=el("button","btn");saveBtn.style.marginTop="12px";saveBtn.textContent="שמור מחלקות";
+  saveBtn.onclick=async()=>{
+    const cleaned=depts.map(d=>d.trim()).filter(Boolean);
+    state.departments=cleaned;
+    await fsSaveSettings({departments:cleaned});
+    saveBtn.textContent="✓ נשמר!";setTimeout(()=>saveBtn.textContent="שמור מחלקות",2000);
+  };
+  content.appendChild(saveBtn);
+
+  const warn=el("p");warn.style.cssText="font-size:11px;color:var(--muted);margin-top:8px;text-align:center;line-height:1.6";
+  warn.textContent="⚠️ שינוי שם מחלקה לא ישנה את המחלקה של משתמשים שכבר נרשמו – יש לעדכן אותם ידנית בלשונית משתמשים.";
+  content.appendChild(warn);
 }
 
 function renderAdminScorers(content){
@@ -971,7 +1027,7 @@ function renderAdminPrizes(content){
   sizeTitle.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">🏅 גודל מחלקות (לתחרות ההשתתפות)</p><p style="font-size:12px;color:var(--muted);margin:0">הזן את מספר העובדים בכל מחלקה לחישוב אחוז ההשתתפות</p>`;
   content.appendChild(sizeTitle);
   const sizes=state.prizes.deptSizes||{};
-  DEPARTMENTS.forEach(d=>{
+  getDepts().forEach(d=>{
     const wrap=el("div");wrap.style.marginTop="8px";
     wrap.innerHTML=`<label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">${d}</label><input id="sz-${d}" class="input" type="number" min="1" value="${sizes[d]||""}" placeholder="מספר עובדים..." style="padding:8px 14px;font-size:13px"/>`;
     content.appendChild(wrap);
@@ -981,7 +1037,7 @@ function renderAdminPrizes(content){
   saveBtn.onclick=async()=>{
     const pr={first:qs("#pr-first").value,second:qs("#pr-second").value,third:qs("#pr-third").value,dept:qs("#pr-dept").value,winner:qs("#pr-winner").value};
     const deptSizes={};
-    DEPARTMENTS.forEach(d=>{const v=qs("#sz-"+d);if(v&&v.value)deptSizes[d]=parseInt(v.value)||0;});
+    getDepts().forEach(d=>{const v=qs("#sz-"+d);if(v&&v.value)deptSizes[d]=parseInt(v.value)||0;});
     pr.deptSizes=deptSizes;
     state.prizes=pr;
     await fsSaveSettings({prizes:pr});
@@ -1032,6 +1088,7 @@ async function init(){
   const settings=await fsGetSettings();
   if(settings.scorers)state.scorers=settings.scorers;
   if(settings.prizes)state.prizes=settings.prizes;
+  if(settings.departments)state.departments=settings.departments;
   if(settings.matches){
     settings.matches.forEach(sm=>{
       const m=state.matches.find(x=>x.id===sm.id);
@@ -1051,6 +1108,7 @@ async function init(){
   fsListenSettings(settings=>{
     if(settings.scorers)state.scorers=settings.scorers;
     if(settings.prizes)state.prizes=settings.prizes;
+    if(settings.departments)state.departments=settings.departments;
     if(settings.matches){
       settings.matches.forEach(sm=>{
         const m=state.matches.find(x=>x.id===sm.id);
