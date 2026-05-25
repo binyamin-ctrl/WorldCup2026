@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>מונדיאל 2026 - ויסוצקי</title>
+<title>מונדיאל 2026 –ויסוצקי</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh}
@@ -147,8 +146,29 @@ const SCHEDULE = [
 const KNOCKOUT_STAGES=[{label:"שלב 32 האחרונות",date:"28 יוני ואילך"},{label:"שמינית גמר",date:"5 יולי"},{label:"רבע גמר",date:"9 יולי"},{label:"חצי גמר",date:"14–15 יולי"},{label:"גמר",date:"19 יולי · MetLife Stadium, NJ"}];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+const WISSOTZKY_LOGO="data:image/jpeg;base64,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+GrCP/Q7WExMT96Un7zH3NVKjPM8d9ZpJxhCEoptWu5adeiKhUWHouD3bv8AceP/APBNNv8AixNwh+Vl1G4JU9RmRiP0q1/wUvuktv2WNS3n711AoHc/Mar6HpGv/sj+KdZh0vwzqfifwvrM5uYfsGDNZN3DKeNo55B59K5jxzpPjb9tfxno2nX3hm+8J+AdLuVurxr8/wCkaltPCqo4AOMZJ4965faT/sz+zHF+0knFqztq7b2tsbRinifrF/d0Z7/q9u1r8C75XBDJoso57fuWr5Z/YU8EeKPH37K1xp2ha1b6La3l3PFcO0OZipJDbT2OOhr6w+J9teXPww1m1061N1eS2MkEUIbG4spXAP414/8A8E7fAHiH4WfCe70TxFod7pV0t48qGZRtdW545r0MZgfa4+lGqnyxg07edtPnY56NZRw811bVvkem/AL4IaP+z78NrXw/o6zSRws0808vMt1M33pG9zgflXeqcrUSRY/LFSgYFfUUacKcFCmrJI8+UpN3kFFFFaEhRRRQAUUUUAFFFFADe/tTX57dO3rUmKMUrAQRw7WpXXHXJ981NijFOy3YeupCqcfX3pdpJ9qlxRip5XsmFl0IBEfm/QY6Upj3dvwqbFFVrzXTB3IlTnlafswKdiip5dLMNSF03n+Yx1oaJg+f4eOO9TYoxinG6dwIUG5/88U/btNPxiihRSYbbDW5FOHAoxRT8wCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//Z";
 function hashPwd(p){let h=0;for(let i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h|=0;}return h.toString(36);}
 function teamColor(name){const p=["#1a6fa8","#b83232","#2e8b57","#8b5e2e","#6a4fa8","#b87a1a","#2e7a8b","#a83268","#3a7a3a","#8b3a3a"];const i=(name.charCodeAt(0)+(name.charCodeAt(1)||0))%p.length;return p[i];}
+
+// נעילה אוטומטית לפי שעת קיקאוף (שעון ישראל)
+function isMatchLocked(m){
+  // נעול ידנית ע"י מנהל
+  if(m.locked||m.result) return true;
+  // תאריך/שעה לא ידועים
+  if(!m.date||!m.time||m.date==="טרם נקבע"||m.time==="—") return false;
+  try{
+    // מיפוי חודשים עבריים לאנגלית
+    const months={"ינואר":1,"פברואר":2,"מרץ":3,"אפריל":4,"מאי":5,"יוני":6,"יולי":7,"אוגוסט":8,"ספטמבר":9,"אוקטובר":10,"נובמבר":11,"דצמבר":12};
+    const parts=m.date.split(" ");
+    const day=parseInt(parts[0]);
+    const month=months[parts[1]];
+    const year=2026;
+    const [hh,mm]=m.time.split(":").map(Number);
+    // השעות כבר בשעון ישראל – בונים Date לפי UTC+3
+    const kickoff=new Date(Date.UTC(year,month-1,day,hh-3,mm));
+    return Date.now()>=kickoff.getTime();
+  }catch(e){return false;}
+}
 function qs(sel){return document.querySelector(sel);}
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html)e.innerHTML=html;return e;}
 function shortName(n){return n.length>6?n.slice(0,6)+"…":n;}
@@ -261,9 +281,9 @@ function renderLogin(app){
   wrap.innerHTML+=`
   <div style="width:100%;max-width:400px">
     <div style="text-align:center;margin-bottom:28px">
-      <div style="font-size:56px;margin-bottom:10px">🏆</div>
+      <img src="${WISSOTZKY_LOGO}" alt="Wissotzky Group" style="height:70px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto"/>
       <h1 style="font-size:24px;font-weight:800;color:var(--text);margin:0 0 4px">מונדיאל 2026</h1>
-      <p style="color:var(--muted);font-size:14px;margin:0">תחרות ניחושים – וויסוצקי גרופ</p>
+      <p style="color:var(--muted);font-size:14px;margin:0">תחרות ניחושים – ויסוצקי </p>
     </div>
     <div style="background:var(--surface);border-radius:20px;border:0.5px solid var(--border);padding:22px 20px;display:flex;flex-direction:column;gap:14px">
       <div>
@@ -383,6 +403,8 @@ function renderAdminLoginOverlay(){
 function renderScreen(scr){
   // TopBar
   const tb=el("div","topbar");
+  const logoImg=el("img");logoImg.src=WISSOTZKY_LOGO;logoImg.style.cssText="height:32px;object-fit:contain;flex-shrink:0";
+  tb.appendChild(logoImg);
   const title=el("span","topbar-title");title.textContent=screenTitle();tb.appendChild(title);
   const darkBtn=el("button");
   darkBtn.style.cssText="background:none;border:0.5px solid var(--border);border-radius:20px;padding:4px 10px;color:var(--muted);font-size:14px";
@@ -438,7 +460,8 @@ function renderMatches(area){
 }
 
 function matchCard(m){
-  const locked=m.locked||!!m.result;
+  const locked=isMatchLocked(m);
+  const autoLocked=locked&&!m.locked&&!m.result; // נעול אוטומטית (התחיל)
   const userBet=state.user.bets&&state.user.bets[m.id];
   const betResult=userBet&&m.result?(userBet===m.result?"win":"loss"):null;
   const card=el("div","card");
@@ -446,6 +469,7 @@ function matchCard(m){
     <span style="font-size:11px;color:var(--muted)">בית ${m.group} · ${m.date} · ${m.time} · ${m.city}</span>`;
   if(betResult==="win")headerHTML+=`<span class="badge badge-green">+3 ✓</span>`;
   else if(betResult==="loss")headerHTML+=`<span class="badge badge-red">0</span>`;
+  else if(autoLocked)headerHTML+=`<span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 7px">⏰ מתחיל</span>`;
   else if(locked&&!m.result)headerHTML+=`<span style="font-size:11px;color:var(--muted)">🔒</span>`;
   headerHTML+="</div>";
 
@@ -496,8 +520,22 @@ function renderKnockout(area){
 
 // ── Scorer screen ─────────────────────────────────────────────────────────────
 function renderScorer(area){
+  const firstMatch=state.matches[0];
+  const scorerLocked=isMatchLocked(firstMatch);
+
   const info=el("div","card");
-  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">מי יהיה מלך השערים? 👑</p><p style="font-size:12px;color:var(--muted);margin:0">בחר שחקן אחד. אם ינצח – <strong style="color:var(--accent)">+5 נקודות בונוס!</strong></p>`;
+  if(scorerLocked){
+    info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">מי יהיה מלך השערים? 👑</p><p style="font-size:12px;color:var(--muted);margin:0">🔒 ההימור ננעל עם פתיחת המונדיאל</p>`;
+    area.appendChild(info);
+    if(state.user.scorerBet){
+      const sel=el("div","card");sel.style.border="1.5px solid var(--green)";
+      sel.innerHTML=`<p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 4px">הימור שלך</p><p style="font-size:16px;font-weight:800;color:var(--text);margin:0">👟 ${state.user.scorerBet}</p>`;
+      area.appendChild(sel);
+    }
+    return;
+  }
+
+  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">מי יהיה מלך השערים? 👑</p><p style="font-size:12px;color:var(--muted);margin:0">בחר שחקן אחד. אם ינצח – <strong style="color:var(--accent)">+5 נקודות בונוס!</strong> ההימור ייסגר עם פתיחת המונדיאל.</p>`;
   area.appendChild(info);
   state.scorers.forEach(player=>{
     const sel=state.user.scorerBet===player;
@@ -511,8 +549,23 @@ function renderScorer(area){
 
 // ── Winner screen ─────────────────────────────────────────────────────────────
 function renderWinner(area){
+  // נועלים אחרי המשחק הראשון של המונדיאל (15 יוני 07:00)
+  const firstMatch=state.matches[0];
+  const winnerLocked=isMatchLocked(firstMatch);
+
   const info=el("div","card");
-  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">הימור אלופת המונדיאל 🏆</p><p style="font-size:12px;color:var(--muted);margin:0">בחר נבחרת אחת. אם תנצח – <strong style="color:var(--accent)">+10 נקודות בונוס!</strong></p>`;
+  if(winnerLocked){
+    info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">הימור אלופת המונדיאל 🏆</p><p style="font-size:12px;color:var(--muted);margin:0">🔒 ההימור ננעל עם פתיחת המונדיאל</p>`;
+    area.appendChild(info);
+    if(state.user.winnerBet){
+      const sel=el("div","card");sel.style.border="1.5px solid var(--accent)";
+      sel.innerHTML=`<p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 4px">הימור שלך</p><p style="font-size:16px;font-weight:800;color:var(--text);margin:0">🌍 ${state.user.winnerBet}</p>`;
+      area.appendChild(sel);
+    }
+    return;
+  }
+
+  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">הימור אלופת המונדיאל 🏆</p><p style="font-size:12px;color:var(--muted);margin:0">בחר נבחרת אחת. אם תנצח – <strong style="color:var(--accent)">+10 נקודות בונוס!</strong> ההימור ייסגר עם פתיחת המונדיאל.</p>`;
   area.appendChild(info);
   const search=el("input","input");search.placeholder="חיפוש נבחרת...";search.style.marginBottom="10px";
   area.appendChild(search);
@@ -530,6 +583,12 @@ function renderWinner(area){
   };
   search.oninput=()=>renderTeams(search.value);
   renderTeams("");
+
+  if(state.user.winnerBet){
+    const conf=el("div","card");conf.style.cssText="border:1.5px solid var(--accent);margin-top:4px";
+    conf.innerHTML=`<p style="font-size:13px;color:var(--accent);font-weight:700;margin:0 0 2px">✓ הימרת על: ${state.user.winnerBet}</p><p style="font-size:11px;color:var(--muted);margin:0">לחץ שוב על הנבחרת לביטול</p>`;
+    area.appendChild(conf);
+  }
 }
 
 // ── Leaderboard screen ────────────────────────────────────────────────────────
@@ -696,7 +755,8 @@ function renderProfile(area){
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
     ${[["⭐","נקודות",u.points||0],["🎯","הימרתי",myBets.length+"/"+state.matches.length],["👟","מלך שערים",u.scorerBet?"✓":"—"]].map(([e,l,v])=>`<div class="card" style="text-align:center;padding:14px 8px"><p style="font-size:22px;margin:0 0 4px">${e}</p><p style="font-size:18px;font-weight:800;color:var(--text);margin:0 0 2px">${v}</p><p style="font-size:11px;color:var(--muted);margin:0">${l}</p></div>`).join("")}
   </div>
-  ${u.winnerBet?`<div class="card" style="border:1.5px solid var(--accent);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור אלוף</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">🌍 ${u.winnerBet}</p></div>`:""}
+  ${u.winnerBet?`<div class="card" style="border:1.5px solid var(--accent);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור אלופת המונדיאל</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">🌍 ${u.winnerBet}</p></div>`:""}
+  ${u.scorerBet?`<div class="card" style="border:1.5px solid var(--green);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור מלך השערים</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">👟 ${u.scorerBet}</p></div>`:""}
   ${myBets.length?`<div class="card"><p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 10px;border-bottom:0.5px solid var(--border);padding-bottom:8px">ההימורים שלי (${myBets.length})</p>${myBets.slice(0,12).map(m=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)"><div><p style="margin:0;font-size:13px;color:var(--text)">${m.home} נ׳ ${m.away}</p><p style="margin:0;font-size:11px;color:var(--muted)">בית ${m.group} · ${m.date}</p></div><span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;background:var(--chip);color:var(--accent)">${u.bets[m.id]==="2"?m.home:u.bets[m.id]==="1"?m.away:"תיקו"}</span></div>`).join("")}${myBets.length>12?`<p style="text-align:center;font-size:12px;color:var(--muted);margin:8px 0 0">+ עוד ${myBets.length-12}</p>`:""}</div>`:""}`;
   setTimeout(()=>{const lb=qs("#logout-btn");if(lb)lb.onclick=logout;},0);
 }
@@ -709,7 +769,9 @@ function renderAdmin(){
   document.body.appendChild(overlay);
 
   const tb=el("div","topbar");
-  tb.innerHTML=`<span class="topbar-title">⚙️ ממשק ניהול</span>`;
+  const adminLogo=el("img");adminLogo.src=WISSOTZKY_LOGO;adminLogo.style.cssText="height:30px;object-fit:contain;flex-shrink:0";
+  tb.appendChild(adminLogo);
+  tb.innerHTML+=`<span class="topbar-title">⚙️ ממשק ניהול</span>`;
   const exitBtn=el("button");exitBtn.style.cssText="font-size:12px;padding:4px 10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer";
   exitBtn.textContent="יציאה ←";exitBtn.onclick=()=>overlay.remove();
   tb.appendChild(exitBtn);
@@ -1009,6 +1071,14 @@ async function init(){
 }
 
 init();
+
+// רענון אוטומטי כל 60 שניות – כדי שנעילת משחקים תיכנס לתוקף בזמן אמת
+setInterval(()=>{
+  if(state.user&&state.screen==="matches"){
+    const area=qs(".scroll-area");
+    if(area)renderMatches(area);
+  }
+},60000);
 </script>
 </body>
 </html>
