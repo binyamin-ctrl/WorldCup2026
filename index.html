@@ -684,7 +684,7 @@ function renderLeaderboard(area){
     const info=el("div","card");
     info.style.cssText="border:1.5px solid var(--accent);margin-bottom:12px";
     info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">🏅 תחרות ההשתתפות</p>
-      <p style="font-size:12px;color:var(--muted);margin:0">המחלקה עם <strong>הכי הרבה משתתפים</strong> זוכה ב-Extra Happy Hour + נקודת בונוס לכל חבר!</p>`;
+      <p style="font-size:12px;color:var(--muted);margin:0">המחלקה עם <strong>אחוז המשתתפים הגבוה ביותר</strong> זוכה ב-Extra Happy Hour + נקודת בונוס לכל חבר!</p>`;
     area.appendChild(info);
 
     const deptMap={};
@@ -740,7 +740,7 @@ function renderPrizes(area){
     {emoji:"🥇",label:"מקום ראשון",value:"ארוחה זוגית במסעדת שף",color:"var(--gold)"},
     {emoji:"🥈",label:"מקום שני",value:"ארוחה משפחתית",color:"var(--silver)"},
     {emoji:"🥉",label:"מקום שלישי",value:"ארוחת בוקר זוגית",color:"var(--bronze)"},
-    {emoji:"🏢",label:"מחלקה עם הכי הרבה משתתפים",value:"Extra Happy Hour לכל המחלקה + נקודת בונוס לכל חבר 🎉",color:"var(--accent)"},
+    {emoji:"🏢",label:"מחלקה עם אחוז המשתתפים הגבוה ביותר",value:"אקסטרה Happy Hour לכל המחלקה + נקודת בונוס לכל חבר 🎉",color:"var(--accent)"},
   ];
 
   // פרסים מותאמים מניהול (עוקפים אם הוגדרו)
@@ -754,8 +754,8 @@ function renderPrizes(area){
     const card=el("div","card");
     card.style.cssText=`display:flex;align-items:center;gap:14px;border:1.5px solid ${p.color};padding:14px 16px;margin-bottom:10px;border-radius:14px;background:var(--surface)`;
     card.innerHTML=`<div style="width:52px;height:52px;border-radius:50%;background:${p.color}22;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">${p.emoji}</div>
-      <div><p style="margin:0 0 2px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">${p.label}</p>
-      <p style="margin:0;font-size:15px;font-weight:800;color:var(--text)">${p.value}</p></div>`;
+      <div><p style="margin:0 0 2px;font-size:11px;font-weight:600;color:var(--muted)">${p.label}</p>
+      <p style="margin:0;font-size:15px;font-weight:700;color:var(--text)">${p.value}</p></div>`;
     area.appendChild(card);
   });
 
@@ -766,7 +766,7 @@ function renderPrizes(area){
     <p style="font-weight:800;font-size:15px;color:var(--text);margin:0 0 12px;text-align:center">📊 איך צוברים נקודות?</p>
     <div style="display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
-        <span style="font-size:13px;color:var(--text)">✅ ניחוש כל תוצאה נכונה בכל משחק</span>
+        <span style="font-size:13px;color:var(--text)">✅ ניחוש תוצאה נכונה בכל משחק</span>
         <span style="font-size:15px;font-weight:800;color:var(--accent)">3 נקודות</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
@@ -778,7 +778,7 @@ function renderPrizes(area){
         <span style="font-size:15px;font-weight:800;color:var(--accent)">10 נקודות</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
-        <span style="font-size:13px;color:var(--text)">🏢 מחלקה עם הכי הרבה משתתפים</span>
+        <span style="font-size:13px;color:var(--text)">🏢 מחלקה עם אחוז המשתתפים הגבוה ביותר</span>
         <span style="font-size:15px;font-weight:800;color:var(--accent)">+1 נק׳ לכל חבר</span>
       </div>
     </div>
@@ -790,7 +790,11 @@ function renderPrizes(area){
 
 // ── Profile screen ────────────────────────────────────────────────────────────
 function renderProfile(area){
-  const u=state.user;const myBets=state.matches.filter(m=>u.bets&&u.bets[m.id]);
+  const u=state.user;
+  const myBets=state.matches.filter(m=>u.bets&&u.bets[m.id]);
+  const correctBets=state.matches.filter(m=>m.result&&u.bets&&u.bets[m.id]===m.result);
+  const playedMatches=state.matches.filter(m=>m.result);
+  const guessRatio=playedMatches.length>0?`${correctBets.length}/${playedMatches.length} נכון`:"טרם נקבע";
   area.innerHTML=`
   <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:20px">
     <div style="width:72px;height:72px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;font-weight:800">${u.name.slice(0,1)}</div>
@@ -799,7 +803,7 @@ function renderProfile(area){
     <button id="logout-btn" style="font-size:12px;padding:4px 14px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">התנתק</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
-    ${[["⭐","נקודות",u.points||0],["🎯","הימרתי",myBets.length+"/"+state.matches.length],["👟","מלך שערים",u.scorerBet?"✓":"—"]].map(([e,l,v])=>`<div class="card" style="text-align:center;padding:14px 8px"><p style="font-size:22px;margin:0 0 4px">${e}</p><p style="font-size:18px;font-weight:800;color:var(--text);margin:0 0 2px">${v}</p><p style="font-size:11px;color:var(--muted);margin:0">${l}</p></div>`).join("")}
+    ${[["⭐","נקודות",u.points||0],["🎯","ניחושים",myBets.length+"/"+state.matches.length],["✅","הצלחות",guessRatio]].map(([e,l,v])=>`<div class="card" style="text-align:center;padding:14px 8px"><p style="font-size:22px;margin:0 0 4px">${e}</p><p style="font-size:${String(v).length>6?"14":"18"}px;font-weight:800;color:var(--text);margin:0 0 2px">${v}</p><p style="font-size:11px;color:var(--muted);margin:0">${l}</p></div>`).join("")}
   </div>
   ${u.winnerBet?`<div class="card" style="border:1.5px solid var(--accent);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור אלופת המונדיאל</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">🌍 ${u.winnerBet}</p></div>`:""}
   ${u.scorerBet?`<div class="card" style="border:1.5px solid var(--green);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור מלך השערים</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">👟 ${u.scorerBet}</p></div>`:""}
