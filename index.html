@@ -253,7 +253,10 @@ function logout(){
 async function saveBet(matchId,val){
   if(!state.user)return;
   state.user.bets={...state.user.bets,[matchId]:val};
-  await fsSaveUser(state.user);
+  // חשב נקודות מחדש מיד
+  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  state.user.points=pts;
+  await fsSaveUser({...state.user,points:pts});
 }
 async function saveScorerBet(player){
   if(!state.user)return;
@@ -537,11 +540,13 @@ function matchCard(m){
       const newVal=isSelected?null:String(v);
       if(newVal===null){
         delete state.user.bets[m.id];
-        await fsSaveUser(state.user);
       } else {
-        await saveBet(m.id,newVal);
         state.user.bets[m.id]=newVal;
       }
+      // חשב נקודות מחדש
+      const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+      state.user.points=pts;
+      await fsSaveUser({...state.user,points:pts});
       renderMatchesRefresh();
     };
     chipsDiv.appendChild(b);
@@ -793,6 +798,9 @@ function renderPrizes(area){
 // ── Profile screen ────────────────────────────────────────────────────────────
 function renderProfile(area){
   const u=state.user;
+  // חשב נקודות בזמן אמת מהניחושים הקיימים
+  const livePoints=calcPoints(u,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  if(u.points!==livePoints){u.points=livePoints;fsSaveUser({...u,points:livePoints});}
   const myBets=state.matches.filter(m=>u.bets&&u.bets[m.id]);
   const correctBets=state.matches.filter(m=>m.result&&u.bets&&u.bets[m.id]===m.result);
   const playedMatches=state.matches.filter(m=>m.result);
@@ -808,7 +816,7 @@ function renderProfile(area){
     ${[
       ["🎯","ניחושים שלי",myBets.length+"/"+state.matches.length],
       ["✅","ניחשתי נכון",playedMatches.length>0?correctBets.length+"/"+playedMatches.length:"טרם יש תוצאות"],
-      ["⭐","הניקוד שלי",u.points||0]
+      ["⭐","הניקוד שלי",livePoints]
     ].map(([e,l,v])=>`<div class="card" style="text-align:center;padding:14px 8px"><p style="font-size:22px;margin:0 0 4px">${e}</p><p style="font-size:${String(v).length>8?"12":String(v).length>5?"14":"18"}px;font-weight:800;color:var(--text);margin:0 0 2px">${v}</p><p style="font-size:11px;color:var(--muted);margin:0">${l}</p></div>`).join("")}
   </div>
   ${u.winnerBet?`<div class="card" style="border:1.5px solid var(--accent);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור אלופת המונדיאל</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">🌍 ${u.winnerBet}</p></div>`:""}
@@ -1189,13 +1197,22 @@ async function init(){
   }
 
   // Live listeners
-  fsListenUsers(users=>{
+  fsListenUsers(async users=>{
     state.liveUsers=users;
     if(state.user){
       const me=users.find(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
-      if(me)state.user={...state.user,...me};
+      if(me){
+        state.user={...state.user,...me};
+        // חשב נקודות מחדש לאחר קבלת נתוני המשתמש העדכניים
+        const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+        if(state.user.points!==pts){
+          state.user.points=pts;
+          await fsSaveUser({...state.user,points:pts});
+        }
+      }
     }
-    if(state.screen==="leaderboard"||state.screen==="profile"){render();}
+    // עדכן תצוגה בכל מסך רלוונטי
+    if(["leaderboard","profile","matches"].includes(state.screen)){render();}
   });
   fsListenSettings(settings=>{
     if(settings.scorers)state.scorers=settings.scorers;
@@ -1218,6 +1235,16 @@ async function init(){
   }
 
   render();
+
+  // חישוב נקודות מחדש בטעינה – מבטיח עדכניות
+  setTimeout(async()=>{
+    await recalcAllPoints();
+    // רענן דירוג אם פתוח
+    if(state.user&&state.screen==="leaderboard"){
+      const area=qs(".scroll-area");
+      if(area)renderLeaderboard(area);
+    }
+  }, 2000);
 }
 
 init();
