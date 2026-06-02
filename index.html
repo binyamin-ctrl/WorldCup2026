@@ -332,11 +332,11 @@ function renderLogin(app){
   <div style="width:100%;max-width:400px">
     <div style="text-align:center;margin-bottom:28px">
       <img src="${WISSOTZKY_LOGO}" alt="Wissotzky" style="height:80px;object-fit:contain;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto;border-radius:0;background:none"/>
-      <h1 style="font-size:24px;font-weight:800;color:var(--text);margin:0 0 4px">מונדיאל 2026</h1>
+      <p style="font-size:24px;font-weight:800;color:var(--text);margin:0 0 4px">מונדיאל 2026</p>
       <p style="color:var(--muted);font-size:13px;margin:0 0 4px;line-height:1.6">מי תנצח במשחקים? מי תהיה אלופת המונדיאל? מי יוכתר מלך השערים?</p>
       <p style="color:var(--muted);font-size:12px;margin:0;line-height:1.6">חושבים שאתם יודעים את התשובות? כנסו לדפי הניחושים המופיעים בסרגל העליון, נחשו ותתחילו לצבור נקודות</p>
     </div>
-    <div style="background:var(--surface);border-radius:20px;border:0.5px solid var(--border);padding:22px 20px;display:flex;flex-direction:column;gap:14px">
+    <div style="background:var(--surface);border-radius:20px;border:0.5px solid var(--border);padding:22px 20px;display:flex;flex-direction:column;gap:14px;font-family:system-ui,-apple-system,sans-serif">
       <div>
         <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">שם מלא</label>
         <input id="ln-name" class="input" placeholder="ישראל ישראלי"/>
@@ -348,11 +348,11 @@ function renderLogin(app){
       </div>
       <div id="ln-pwd-wrap" style="display:none">
         <label id="ln-pwd-label" style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">סיסמה</label>
-        <input id="ln-pwd" class="input" type="password" placeholder="כאן מקלידים סיסמה" style="text-align:center;letter-spacing:2px"/>
+        <input id="ln-pwd" class="input" type="password" placeholder="כאן מקלידים סיסמה" style="text-align:right"/>
       </div>
       <div id="ln-pwd2-wrap" style="display:none">
         <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">אימות סיסמה</label>
-        <input id="ln-pwd2" class="input" type="password" placeholder="כאן מקלידים שוב לאימות" style="text-align:center;letter-spacing:2px"/>
+        <input id="ln-pwd2" class="input" type="password" placeholder="כאן מקלידים שוב לאימות" style="text-align:right"/>
       </div>
       <div id="ln-error" class="error" style="display:none"></div>
       <button id="ln-submit" class="btn" disabled>המשך ←</button>
@@ -430,7 +430,7 @@ function renderAdminLoginOverlay(){
   overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px";
   overlay.innerHTML=`<div style="background:var(--surface);border-radius:16px;border:0.5px solid var(--border);padding:24px 22px;width:100%;max-width:340px">
     <p style="font-size:20px;font-weight:800;color:var(--text);margin:0 0 16px;text-align:center">⚙️ ממשק ניהול</p>
-    <input id="adm-pwd" class="input" type="password" placeholder="סיסמת מנהל" style="text-align:center;letter-spacing:3px;margin-bottom:10px"/>
+    <input id="adm-pwd" class="input" type="password" placeholder="סיסמת מנהל" style="text-align:right;margin-bottom:10px"/>
     <div id="adm-err" class="error" style="display:none;margin-bottom:8px"></div>
     <button id="adm-ok" class="btn">כניסה</button>
     <button id="adm-cancel" class="btn" style="background:transparent;color:var(--muted);border:0.5px solid var(--border);margin-top:8px">ביטול</button>
@@ -1000,7 +1000,7 @@ function showAddUserForm(content,allUsers){
   const form=el("div","card");form.style.border="1.5px solid var(--accent)";
   form.innerHTML=`<p style="font-weight:700;font-size:13px;color:var(--text);margin:0 0 10px">הוספת משתמש חדש</p>
   <input id="add-name" class="input" placeholder="שם מלא" style="margin-bottom:8px"/>
-  <input id="add-pwd" class="input" type="password" placeholder="סיסמה" style="margin-bottom:8px;text-align:center;letter-spacing:2px"/>
+  <input id="add-pwd" class="input" type="password" placeholder="סיסמה" style="margin-bottom:8px"/>
   <div id="add-dept-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
   <div style="display:flex;gap:8px">
     <button id="add-ok" class="btn" style="margin-top:0">הוסף</button>
@@ -1027,7 +1027,7 @@ function showEditUserForm(content,allUsers,name){
   const form=el("div","card");form.style.border="1.5px solid var(--accent)";
   form.innerHTML=`<p style="font-weight:700;font-size:13px;color:var(--text);margin:0 0 10px">עריכת משתמש: ${u.name}</p>
   <input id="edit-name" class="input" value="${u.name}" style="margin-bottom:8px"/>
-  <input id="edit-pwd" class="input" type="password" placeholder="סיסמה חדשה (השאר ריק = ללא שינוי)" style="margin-bottom:8px;text-align:center;letter-spacing:2px"/>
+  <input id="edit-pwd" class="input" type="password" placeholder="סיסמה חדשה (השאר ריק = ללא שינוי)" style="margin-bottom:8px"/>
   <div id="edit-dept-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
   <div style="display:flex;gap:8px">
     <button id="edit-ok" class="btn" style="margin-top:0">שמור</button>
