@@ -653,9 +653,12 @@ function renderWinner(area){
 }
 
 // ── Leaderboard screen ────────────────────────────────────────────────────────
+// פונקציה להצגת שם יחידה ללא "מטה-" בהתחלה
+function shortDeptName(name){ return name.replace(/^מטה- /,""); }
+
 function renderLeaderboard(area){
   const tabBar=el("div","tab-bar");
-  [["personal","דירוג אישי"],["dept","דירוג יחידות"],["participation","🏅 תחרות השתתפות"]].forEach(([id,label])=>{
+  [["personal","דירוג אישי"],["dept","דירוג יחידות"]].forEach(([id,label])=>{
     const b=el("button","tab-btn"+(state.leaderTab===id?" active":""));b.textContent=label;
     b.onclick=()=>{state.leaderTab=id;renderLeaderboard(area);};tabBar.appendChild(b);
   });
@@ -673,8 +676,8 @@ function renderLeaderboard(area){
       <div style="text-align:left"><p style="margin:0;font-size:20px;font-weight:800;color:var(--accent)">${u.points||0}</p><p style="margin:0;font-size:10px;color:var(--muted)">נקודות</p></div>`;
       area.appendChild(card);
     });
-  } else if(state.leaderTab==="dept") {
-    // מאחד מחלקות לפי DEPT_GROUPS
+  } else if(state.leaderTab==="dept"){
+    // ── דירוג יחידות + תחרות השתתפות במסך אחד ──
     const groupMap={};
     Object.keys(DEPT_GROUPS).forEach(g=>{groupMap[g]={name:g,total:0,count:0,members:[],subDepts:DEPT_GROUPS[g]};});
     state.liveUsers.forEach(u=>{
@@ -687,11 +690,20 @@ function renderLeaderboard(area){
         }
       }
     });
-    const sorted=Object.values(groupMap).map(d=>({...d,avg:d.count?Math.round(d.total/d.count):0})).sort((a,b)=>b.avg-a.avg);
-    sorted.forEach((d,i)=>{
+
+    // דירוג ניקוד
+    const byScore=Object.values(groupMap).map(d=>({...d,avg:d.count?Math.round(d.total/d.count):0})).sort((a,b)=>b.avg-a.avg);
+
+    // כותרת דירוג ניקוד
+    const scoreTitle=el("p");scoreTitle.style.cssText="font-weight:700;font-size:14px;color:var(--text);margin:8px 0 8px";
+    scoreTitle.textContent="🏆 דירוג ניקוד יחידות";
+    area.appendChild(scoreTitle);
+
+    byScore.forEach((d,i)=>{
       const card=el("div","card");if(i<3)card.style.borderLeft=`1.5px solid ${mc[i]}`;
       const membersHTML=d.members.sort((a,b)=>(b.points||0)-(a.points||0)).map(m=>`<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--muted)">${m.name} <strong style="color:var(--text)">${m.points||0}</strong></span>`).join("");
-      const subDeptsHTML=`<p style="font-size:11px;color:var(--muted);margin:2px 0 0">${d.subDepts.join(" · ")}</p>`;
+      // שמות יחידות ללא "מטה-"
+      const subDeptsHTML=`<p style="font-size:11px;color:var(--muted);margin:2px 0 0">${d.subDepts.map(shortDeptName).join(" · ")}</p>`;
       card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${d.members.length?8:0}px">
         <div style="display:flex;align-items:center;gap:10px">
           <span style="width:26px;text-align:center;font-size:${i<3?20:13}px;color:${i<3?mc[i]:"var(--muted)"};font-weight:700">${i<3?medals[i]:i+1}</span>
@@ -705,55 +717,33 @@ function renderLeaderboard(area){
       </div>${membersHTML?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;border-top:0.5px solid var(--border);padding-top:8px">${membersHTML}</div>`:""}`;
       area.appendChild(card);
     });
-  } else if(state.leaderTab==="participation"){
-    const info=el("div","card");
-    info.style.cssText="border:1.5px solid var(--accent);margin-bottom:12px";
-    info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">🏅 תחרות ההשתתפות היחידתית</p>
-      <p style="font-size:12px;color:var(--muted);margin:0">היחידה עם <strong>אחוז המשתתפים הגבוה ביותר</strong> זוכה ב-אקסטרה Happy Hour + נקודת בונוס לכל חבר! כל עובד נספר פעם אחת בלבד.</p>`;
-    area.appendChild(info);
 
-    // ספירה לפי 4 יחידות מרכזות
-    const groupMap={};
-    Object.keys(DEPT_GROUPS).forEach(g=>{groupMap[g]={name:g,registered:0,members:[]};});
-    state.liveUsers.forEach(u=>{
-      for(const [g,depts] of Object.entries(DEPT_GROUPS)){
-        if(depts.includes(u.dept)){
-          groupMap[g].registered++;
-          groupMap[g].members.push(u.name);
-          break;
-        }
-      }
-    });
+    // ── תחרות השתתפות ──
+    const partTitle=el("p");partTitle.style.cssText="font-weight:700;font-size:14px;color:var(--text);margin:16px 0 4px";
+    partTitle.textContent="🏅 תחרות השתתפות יחידתית";
+    area.appendChild(partTitle);
+    const partInfo=el("p");partInfo.style.cssText="font-size:12px;color:var(--muted);margin:0 0 8px";
+    partInfo.textContent="היחידה עם אחוז המשתתפים הגבוה ביותר – אקסטרה Happy Hour + נקודה לכל משתתף. כל עובד נספר פעם אחת.";
+    area.appendChild(partInfo);
 
-    const sorted=Object.values(groupMap).sort((a,b)=>b.registered-a.registered);
-    const maxCount=sorted[0]?.registered||0;
-
-    sorted.forEach((d,i)=>{
-      const isLeader=i===0&&d.registered>0&&d.registered===maxCount;
+    const byCount=Object.values(groupMap).sort((a,b)=>b.count-a.count);
+    const maxCount=byCount[0]?.count||0;
+    byCount.forEach((d,i)=>{
+      const isLeader=i===0&&d.count>0&&d.count===maxCount;
       const card=el("div","card");
       if(isLeader)card.style.border="2px solid var(--gold)";
-      card.innerHTML=`
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:${i<3?18:13}px">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</span>
-            <div>
-              <p style="margin:0;font-weight:700;font-size:14px;color:var(--text)">${d.name}
-                ${isLeader?'<span style="font-size:11px;background:var(--gold);color:#fff;border-radius:6px;padding:2px 7px;margin-right:6px">מובילים 🎉</span>':""}
-              </p>
-              <p style="margin:0;font-size:11px;color:var(--muted)">${d.members.slice(0,3).join("، ")}${d.members.length>3?` ועוד ${d.members.length-3}`:""}</p>
-            </div>
+      card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:${i<3?18:13}px">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</span>
+          <div>
+            <p style="margin:0;font-weight:700;font-size:14px;color:var(--text)">${d.name}${isLeader?' <span style="font-size:11px;background:var(--gold);color:#fff;border-radius:6px;padding:2px 7px">מובילים 🎉</span>':""}</p>
+            <p style="margin:0;font-size:11px;color:var(--muted)">${d.members.map(m=>m.name).slice(0,3).join("، ")}${d.count>3?` ועוד ${d.count-3}`:""}</p>
           </div>
-          <div style="text-align:left">
-            <p style="margin:0;font-size:22px;font-weight:800;color:var(--accent)">${d.registered}</p>
-            <p style="margin:0;font-size:10px;color:var(--muted)">משתתפים</p>
-          </div>
-        </div>`;
+        </div>
+        <div style="text-align:left"><p style="margin:0;font-size:22px;font-weight:800;color:var(--accent)">${d.count}</p><p style="margin:0;font-size:10px;color:var(--muted)">משתתפים</p></div>
+      </div>`;
       area.appendChild(card);
     });
-
-    const note=el("div","card");note.style.marginTop="4px";
-    note.innerHTML=`<p style="font-size:12px;color:var(--muted);margin:0;line-height:1.7">💡 כל עובד שנרשם לאפליקציה נספר פעם אחת בלבד עבור היחידה שלו.</p>`;
-    area.appendChild(note);
   }
 }
 
@@ -772,7 +762,7 @@ function renderPrizes(area){
     {emoji:"🥇",label:"מקום ראשון",value:"ארוחה זוגית במסעדת שף",color:"var(--gold)"},
     {emoji:"🥈",label:"מקום שני",value:"ארוחה משפחתית",color:"var(--silver)"},
     {emoji:"🥉",label:"מקום שלישי",value:"ארוחת בוקר זוגית",color:"var(--bronze)"},
-    {emoji:"🏢",label:"יחידה עם אחוז המשתתפים הגבוה ביותר",value:"אקסטרה Happy Hour לכל היחידה + נקודת בונוס לכל חבר 🎉",color:"var(--accent)"},
+    {emoji:"🏢",label:"יחידה עם אחוז המשתתפים הגבוה ביותר",value:"אקסטרה Happy Hour לכל היחידה + נקודה לכל משתתף 🎉",color:"var(--accent)"},
   ];
 
   // פרסים מותאמים מניהול (עוקפים אם הוגדרו)
@@ -815,7 +805,7 @@ function renderPrizes(area){
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
         <span style="font-size:13px;color:var(--text)">🏢 יחידה עם אחוז המשתתפים הגבוה ביותר</span>
-        <span style="font-size:15px;font-weight:800;color:var(--accent)">+1 נק׳ לכל חבר</span>
+        <span style="font-size:15px;font-weight:800;color:var(--accent)">נקודה לכל משתתף</span>
       </div>
     </div>
     <p style="font-size:12px;color:var(--muted);margin:12px 0 0;text-align:center;line-height:1.7">
@@ -1211,7 +1201,10 @@ async function init(){
   const settings=await fsGetSettings();
   if(settings.scorers)state.scorers=settings.scorers;
   if(settings.prizes)state.prizes=settings.prizes;
-  if(settings.departments)state.departments=settings.departments;
+  // בדיקה – אם Firebase מחזיר רשימה ישנה נאפס לברירת מחדל החדשה
+  const isOldDepts=(d)=>d&&d.some(x=>x==="מנהלה"||x==="שיווק"||x==="מפעל"||x==="שרשרת אספקה");
+  if(settings.departments&&!isOldDepts(settings.departments)) state.departments=settings.departments;
+  else { state.departments=[...DEFAULT_DEPARTMENTS]; await fsSaveSettings({departments:[...DEFAULT_DEPARTMENTS]}); }
   if(settings.matches){
     settings.matches.forEach(sm=>{
       const m=state.matches.find(x=>x.id===sm.id);
@@ -1231,7 +1224,7 @@ async function init(){
   fsListenSettings(settings=>{
     if(settings.scorers)state.scorers=settings.scorers;
     if(settings.prizes)state.prizes=settings.prizes;
-    if(settings.departments)state.departments=settings.departments;
+    if(settings.departments&&!isOldDepts(settings.departments))state.departments=settings.departments;
     if(settings.matches){
       settings.matches.forEach(sm=>{
         const m=state.matches.find(x=>x.id===sm.id);
