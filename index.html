@@ -590,7 +590,7 @@ function renderScorer(area){
   }
 
   info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">מי יהיה מלך השערים? 👑</p>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 2px">בחר שחקן אחד. אם ניחשת נכון קיבלת <strong style="color:var(--accent)">5 נקודות בונוס!</strong></p>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 2px">בחר שחקן אחד. אם ניחשת נכון קיבלת <strong style="color:var(--accent)">8 נקודות בונוס!</strong></p>
     <p style="font-size:11px;color:var(--muted);margin:0">הרשימה מסודרת לפי א-ב</p>`;
   area.appendChild(info);
   const sorted=[...state.scorers].sort((a,b)=>a.localeCompare(b,"he"));
@@ -653,8 +653,10 @@ function renderWinner(area){
 }
 
 // ── Leaderboard screen ────────────────────────────────────────────────────────
-// פונקציה להצגת שם יחידה ללא "מטה-" בהתחלה
-function shortDeptName(name){ return name.replace(/^מטה- /,""); }
+// מסיר קידומות מיחידות משנה
+function shortDeptName(name){
+  return name.replace(/^מטה- /,"").replace(/^מפעל- /,"").replace(/^מרלו"ג- /,"");
+}
 
 function renderLeaderboard(area){
   const tabBar=el("div","tab-bar");
@@ -664,6 +666,7 @@ function renderLeaderboard(area){
   });
   area.innerHTML="";area.appendChild(tabBar);
   const medals=["🥇","🥈","🥉"];const mc=["var(--gold)","var(--silver)","var(--bronze)"];
+
   if(state.leaderTab==="personal"){
     if(!state.liveUsers.length){area.innerHTML+='<p style="text-align:center;color:var(--muted);padding:40px 0;font-size:14px">🏆 הטבלה תתמלא בקרוב</p>';return;}
     const sorted=[...state.liveUsers].sort((a,b)=>(b.points||0)-(a.points||0));
@@ -677,7 +680,7 @@ function renderLeaderboard(area){
       area.appendChild(card);
     });
   } else if(state.leaderTab==="dept"){
-    // ── דירוג יחידות + תחרות השתתפות במסך אחד ──
+    // בנה נתוני יחידות
     const groupMap={};
     Object.keys(DEPT_GROUPS).forEach(g=>{groupMap[g]={name:g,total:0,count:0,members:[],subDepts:DEPT_GROUPS[g]};});
     state.liveUsers.forEach(u=>{
@@ -691,18 +694,18 @@ function renderLeaderboard(area){
       }
     });
 
-    // דירוג ניקוד
-    const byScore=Object.values(groupMap).map(d=>({...d,avg:d.count?Math.round(d.total/d.count):0})).sort((a,b)=>b.avg-a.avg);
+    // מלל השתתפות בראש
+    const infoBar=el("div");
+    infoBar.style.cssText="background:var(--chip);border-radius:10px;padding:9px 14px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.6";
+    infoBar.innerHTML=`🏅 היחידה עם אחוז המשתתפים הגבוה ביותר – אקסטרה Happy Hour + נקודה לכל משתתף. כל עובד נספר פעם אחת.`;
+    area.appendChild(infoBar);
 
-    // כותרת דירוג ניקוד
-    const scoreTitle=el("p");scoreTitle.style.cssText="font-weight:700;font-size:14px;color:var(--text);margin:8px 0 8px";
-    scoreTitle.textContent="🏆 דירוג ניקוד יחידות";
-    area.appendChild(scoreTitle);
+    // דירוג לפי ממוצע נקודות
+    const byScore=Object.values(groupMap).map(d=>({...d,avg:d.count?Math.round(d.total/d.count):0})).sort((a,b)=>b.avg-a.avg);
 
     byScore.forEach((d,i)=>{
       const card=el("div","card");if(i<3)card.style.borderLeft=`1.5px solid ${mc[i]}`;
       const membersHTML=d.members.sort((a,b)=>(b.points||0)-(a.points||0)).map(m=>`<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--muted)">${m.name} <strong style="color:var(--text)">${m.points||0}</strong></span>`).join("");
-      // שמות יחידות ללא "מטה-"
       const subDeptsHTML=`<p style="font-size:11px;color:var(--muted);margin:2px 0 0">${d.subDepts.map(shortDeptName).join(" · ")}</p>`;
       card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${d.members.length?8:0}px">
         <div style="display:flex;align-items:center;gap:10px">
@@ -710,38 +713,11 @@ function renderLeaderboard(area){
           <div>
             <p style="margin:0;font-weight:700;font-size:15px;color:var(--text)">${d.name}</p>
             ${subDeptsHTML}
-            <p style="margin:2px 0 0;font-size:12px;color:var(--muted)">${d.count} משתתפים</p>
+            <p style="margin:2px 0 0;font-size:12px;color:var(--muted)">${d.count} משתתפים · ממוצע ${d.avg} נק׳</p>
           </div>
         </div>
         <div style="text-align:left"><p style="margin:0;font-size:20px;font-weight:800;color:var(--accent)">${d.avg}</p><p style="margin:0;font-size:10px;color:var(--muted)">ממוצע נק׳</p></div>
       </div>${membersHTML?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;border-top:0.5px solid var(--border);padding-top:8px">${membersHTML}</div>`:""}`;
-      area.appendChild(card);
-    });
-
-    // ── תחרות השתתפות ──
-    const partTitle=el("p");partTitle.style.cssText="font-weight:700;font-size:14px;color:var(--text);margin:16px 0 4px";
-    partTitle.textContent="🏅 תחרות השתתפות יחידתית";
-    area.appendChild(partTitle);
-    const partInfo=el("p");partInfo.style.cssText="font-size:12px;color:var(--muted);margin:0 0 8px";
-    partInfo.textContent="היחידה עם אחוז המשתתפים הגבוה ביותר – אקסטרה Happy Hour + נקודה לכל משתתף. כל עובד נספר פעם אחת.";
-    area.appendChild(partInfo);
-
-    const byCount=Object.values(groupMap).sort((a,b)=>b.count-a.count);
-    const maxCount=byCount[0]?.count||0;
-    byCount.forEach((d,i)=>{
-      const isLeader=i===0&&d.count>0&&d.count===maxCount;
-      const card=el("div","card");
-      if(isLeader)card.style.border="2px solid var(--gold)";
-      card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:${i<3?18:13}px">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</span>
-          <div>
-            <p style="margin:0;font-weight:700;font-size:14px;color:var(--text)">${d.name}${isLeader?' <span style="font-size:11px;background:var(--gold);color:#fff;border-radius:6px;padding:2px 7px">מובילים 🎉</span>':""}</p>
-            <p style="margin:0;font-size:11px;color:var(--muted)">${d.members.map(m=>m.name).slice(0,3).join("، ")}${d.count>3?` ועוד ${d.count-3}`:""}</p>
-          </div>
-        </div>
-        <div style="text-align:left"><p style="margin:0;font-size:22px;font-weight:800;color:var(--accent)">${d.count}</p><p style="margin:0;font-size:10px;color:var(--muted)">משתתפים</p></div>
-      </div>`;
       area.appendChild(card);
     });
   }
