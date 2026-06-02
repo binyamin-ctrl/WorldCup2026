@@ -52,7 +52,7 @@ input{font-family:inherit;direction:rtl}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot, updateDoc, deleteDoc, deleteField, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ── Firebase config ───────────────────────────────────────────────────────────
 const app = initializeApp({
@@ -253,20 +253,33 @@ function logout(){
 async function saveBet(matchId,val){
   if(!state.user)return;
   state.user.bets={...state.user.bets,[matchId]:val};
-  // חשב נקודות מחדש מיד
   const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   state.user.points=pts;
+  // עדכן מיד ב-liveUsers המקומי כדי שהדירוג יתרענן
+  const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
+  if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:state.user.bets,points:pts};
+  else state.liveUsers.push({...state.user,points:pts});
   await fsSaveUser({...state.user,points:pts});
 }
+
 async function saveScorerBet(player){
   if(!state.user)return;
   state.user.scorerBet=player;
-  await fsSaveUser(state.user);
+  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  state.user.points=pts;
+  const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
+  if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],scorerBet:player,points:pts};
+  await fsSaveUser({...state.user,points:pts});
 }
+
 async function saveWinnerBet(team){
   if(!state.user)return;
   state.user.winnerBet=team;
-  await fsSaveUser(state.user);
+  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  state.user.points=pts;
+  const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
+  if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],winnerBet:team,points:pts};
+  await fsSaveUser({...state.user,points:pts});
 }
 
 // ── Compute points ────────────────────────────────────────────────────────────
@@ -536,17 +549,26 @@ function matchCard(m){
     b.style.opacity=locked&&!isSelected?"0.32":"1";
     b.innerHTML=`<span>${v}</span><span style="font-size:9px">${shortName(String(label))}</span>`;
     if(!locked)b.onclick=async()=>{
-      // לחיצה חוזרת = ביטול
       const newVal=isSelected?null:String(v);
+      const pts_before=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
       if(newVal===null){
         delete state.user.bets[m.id];
+        const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+        state.user.points=pts;
+        const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
+        if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:{...state.user.bets},points:pts};
+        await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{
+          [`bets.${m.id}`]: deleteField(),
+          points: pts
+        });
       } else {
         state.user.bets[m.id]=newVal;
+        const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+        state.user.points=pts;
+        const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
+        if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:{...state.user.bets},points:pts};
+        await fsSaveUser({...state.user,points:pts});
       }
-      // חשב נקודות מחדש
-      const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
-      state.user.points=pts;
-      await fsSaveUser({...state.user,points:pts});
       renderMatchesRefresh();
     };
     chipsDiv.appendChild(b);
