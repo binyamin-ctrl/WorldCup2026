@@ -252,10 +252,12 @@ function logout(){
 // ── Bet saving ────────────────────────────────────────────────────────────────
 async function saveBet(matchId,val){
   if(!state.user)return;
+  // בדיקת נעילה – מניעה כפולה גם בצד הלוגיקה
+  const match=state.matches.find(m=>m.id===matchId);
+  if(!match||isMatchLocked(match)){console.warn("ניסיון ניחוש על משחק נעול:",matchId);return;}
   state.user.bets={...state.user.bets,[matchId]:val};
   const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   state.user.points=pts;
-  // עדכן מיד ב-liveUsers המקומי כדי שהדירוג יתרענן
   const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
   if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:state.user.bets,points:pts};
   else state.liveUsers.push({...state.user,points:pts});
@@ -325,8 +327,13 @@ function render(){
 }
 
 function renderLogin(app){
+  // הגדר theme CSS vars ישירות על ה-wrap
+  const dark=state.dark;
+  const themeVars=dark?
+    "--bg:#0e1118;--surface:#181c27;--border:rgba(255,255,255,0.09);--text:#eef0f8;--muted:#7b7f96;--accent:#4f7eff;--chip:#22273a;--green:#1a7a4a;--red:#7a1a1a":
+    "--bg:#f0f7f0;--surface:#fff;--border:rgba(0,0,0,0.08);--text:#0d2b0d;--muted:#4a7a4a;--accent:#006633;--chip:#e0f0e0;--green:#006633;--red:#e53935";
   const wrap=el("div");
-  wrap.style.cssText="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);padding:24px;font-family:system-ui,-apple-system,sans-serif;direction:rtl";
+  wrap.style.cssText=`min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);padding:24px;font-family:system-ui,-apple-system,sans-serif;direction:rtl;${themeVars}`;
 
   wrap.innerHTML+=`
   <div style="width:100%;max-width:400px">
@@ -549,6 +556,8 @@ function matchCard(m){
     b.style.opacity=locked&&!isSelected?"0.32":"1";
     b.innerHTML=`<span>${v}</span><span style="font-size:9px">${shortName(String(label))}</span>`;
     if(!locked)b.onclick=async()=>{
+      // בדיקה כפולה – אולי המשחק התחיל מאז שנטען הדף
+      if(isMatchLocked(m)){renderMatchesRefresh();return;}
       const newVal=isSelected?null:String(v);
       const pts_before=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
       if(newVal===null){
@@ -795,28 +804,24 @@ function renderPrizes(area){
     <p style="font-weight:700;font-size:15px;color:var(--text);margin:0 0 12px;text-align:center">📊 איך צוברים נקודות?</p>
     <div style="display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
-        <span style="font-size:13px;color:var(--text)">✏️ ניחוש על כל משחק (ללא קשר לתוצאה)</span>
-        <span style="font-size:15px;font-weight:800;color:var(--accent)">1 נקודה</span>
+        <span style="font-size:14px;font-weight:500;color:var(--text)">✅ ניחוש תוצאה נכונה בכל משחק</span>
+        <span style="font-size:14px;font-weight:700;color:var(--accent)">5 נקודות</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
-        <span style="font-size:13px;color:var(--text)">✅ ניחוש תוצאה נכונה בכל משחק</span>
-        <span style="font-size:15px;font-weight:800;color:var(--accent)">5 נקודות</span>
+        <span style="font-size:14px;font-weight:500;color:var(--text)">👟 ניחוש מלך השערים</span>
+        <span style="font-size:14px;font-weight:700;color:var(--accent)">8 נקודות</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
-        <span style="font-size:13px;color:var(--text)">👟 ניחוש מלך השערים</span>
-        <span style="font-size:15px;font-weight:800;color:var(--accent)">8 נקודות</span>
+        <span style="font-size:14px;font-weight:500;color:var(--text)">🌍 ניחוש אלופת המונדיאל</span>
+        <span style="font-size:14px;font-weight:700;color:var(--accent)">10 נקודות</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
-        <span style="font-size:13px;color:var(--text)">🌍 ניחוש אלופת המונדיאל</span>
-        <span style="font-size:15px;font-weight:800;color:var(--accent)">10 נקודות</span>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--chip);border-radius:10px;padding:10px 14px">
-        <span style="font-size:13px;color:var(--text)">🏢 יחידה עם אחוז המשתתפים הגבוה ביותר</span>
-        <span style="font-size:15px;font-weight:800;color:var(--accent)">נקודה לכל משתתף</span>
+        <span style="font-size:14px;font-weight:500;color:var(--text)">🏢 יחידה עם אחוז המשתתפים הגבוה ביותר</span>
+        <span style="font-size:14px;font-weight:700;color:var(--accent)">נקודה לכל משתתף</span>
       </div>
     </div>
     <p style="font-size:12px;color:var(--muted);margin:12px 0 0;text-align:center;line-height:1.7">
-      💡 ככל שמנחשים יותר משחקים – כך גדלים הסיכויים לנצח!<br>אל תשכחו להמר על מלך השערים ועל אלופת המונדיאל.
+      💡 ככל שמנחשים יותר משחקים – כך גדלים הסיכויים לנצח!<br>אל תשכחו לנחש על מלך השערים ועל אלופת המונדיאל.
     </p>`;
   area.appendChild(scoring);
 }
@@ -1275,9 +1280,10 @@ async function init(){
 
 init();
 
-// רענון אוטומטי כל 60 שניות – כדי שנעילת משחקים תיכנס לתוקף בזמן אמת
+// רענון אוטומטי כל 60 שניות – נעילת משחקים שהתחילו
 setInterval(()=>{
   if(state.user&&state.screen==="matches"){
+    // רנדר מחדש כדי לנעול משחקים שהתחילו
     const area=qs(".scroll-area");
     if(area)renderMatches(area);
   }
