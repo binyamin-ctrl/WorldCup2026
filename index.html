@@ -836,23 +836,24 @@ function renderProfile(area){
   const correctBets=state.matches.filter(m=>m.result&&u.bets&&u.bets[m.id]===m.result);
   const playedMatches=state.matches.filter(m=>m.result);
   const guessRatio=playedMatches.length>0?`${correctBets.length}/${playedMatches.length} נכון`:"טרם נקבע";
+  area.style.fontFamily="system-ui,-apple-system,sans-serif";
   area.innerHTML=`
   <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:20px">
-    <div style="width:72px;height:72px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;font-weight:800">${u.name.slice(0,1)}</div>
-    <p style="margin:0;font-size:20px;font-weight:800;color:var(--text)">${u.name}</p>
-    <span style="font-size:13px;padding:4px 14px;border-radius:20px;background:var(--chip);color:var(--muted)">${u.dept}</span>
-    <button id="logout-btn" style="font-size:12px;padding:4px 14px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">התנתק</button>
+    <div style="width:72px;height:72px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;font-weight:700">${u.name.slice(0,1)}</div>
+    <p style="margin:0;font-size:20px;font-weight:700;color:var(--text);font-family:system-ui,-apple-system,sans-serif">${u.name}</p>
+    <span style="font-size:13px;padding:4px 14px;border-radius:20px;background:var(--chip);color:var(--muted);font-family:system-ui,-apple-system,sans-serif">${u.dept}</span>
+    <button id="logout-btn" style="font-size:12px;padding:4px 14px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:system-ui,-apple-system,sans-serif">התנתק</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
     ${[
       ["🎯","ניחושים שלי",myBets.length+"/"+state.matches.length],
       ["✅","ניחשתי נכון",playedMatches.length>0?correctBets.length+"/"+playedMatches.length:"טרם יש תוצאות"],
       ["⭐","הניקוד שלי",livePoints]
-    ].map(([e,l,v])=>`<div class="card" style="text-align:center;padding:14px 8px"><p style="font-size:22px;margin:0 0 4px">${e}</p><p style="font-size:${String(v).length>8?"12":String(v).length>5?"14":"18"}px;font-weight:800;color:var(--text);margin:0 0 2px">${v}</p><p style="font-size:11px;color:var(--muted);margin:0">${l}</p></div>`).join("")}
+    ].map(([e,l,v])=>`<div class="card" style="text-align:center;padding:14px 8px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:22px;margin:0 0 4px">${e}</p><p style="font-size:${String(v).length>8?"12":String(v).length>5?"14":"18"}px;font-weight:700;color:var(--text);margin:0 0 2px">${v}</p><p style="font-size:11px;color:var(--muted);margin:0">${l}</p></div>`).join("")}
   </div>
-  ${u.winnerBet?`<div class="card" style="border:1.5px solid var(--accent);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור אלופת המונדיאל</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">🌍 ${u.winnerBet}</p></div>`:""}
-  ${u.scorerBet?`<div class="card" style="border:1.5px solid var(--green);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור מלך השערים</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">👟 ${u.scorerBet}</p></div>`:""}
-  ${myBets.length?`<div class="card"><p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 10px;border-bottom:0.5px solid var(--border);padding-bottom:8px">ההימורים שלי (${myBets.length})</p>${myBets.slice(0,12).map(m=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)"><div><p style="margin:0;font-size:13px;color:var(--text)">${m.home} נ׳ ${m.away}</p><p style="margin:0;font-size:11px;color:var(--muted)">בית ${m.group} · ${m.date}</p></div><span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;background:var(--chip);color:var(--accent)">${u.bets[m.id]==="2"?m.home:u.bets[m.id]==="1"?m.away:"תיקו"}</span></div>`).join("")}${myBets.length>12?`<p style="text-align:center;font-size:12px;color:var(--muted);margin:8px 0 0">+ עוד ${myBets.length-12}</p>`:""}</div>`:""}`;
+  ${u.winnerBet?`<div class="card" style="border:1.5px solid var(--accent);margin-bottom:10px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור אלופת המונדיאל</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">🌍 ${u.winnerBet}</p></div>`:""}
+  ${u.scorerBet?`<div class="card" style="border:1.5px solid var(--green);margin-bottom:10px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור מלך השערים</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">👟 ${u.scorerBet}</p></div>`:""}
+  ${myBets.length?`<div class="card" style="font-family:system-ui,-apple-system,sans-serif"><p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 10px;border-bottom:0.5px solid var(--border);padding-bottom:8px">ההימורים שלי (${myBets.length})</p>${myBets.slice(0,12).map(m=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)"><div><p style="margin:0;font-size:13px;color:var(--text);font-family:system-ui,-apple-system,sans-serif">${m.home} נ׳ ${m.away}</p><p style="margin:0;font-size:11px;color:var(--muted)">${m.date}</p></div><span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;background:var(--chip);color:var(--accent);font-family:system-ui,-apple-system,sans-serif">${u.bets[m.id]==="2"?m.home:u.bets[m.id]==="1"?m.away:"תיקו"}</span></div>`).join("")}${myBets.length>12?`<p style="text-align:center;font-size:12px;color:var(--muted);margin:8px 0 0">+ עוד ${myBets.length-12}</p>`:""}</div>`:""}`;
   setTimeout(()=>{const lb=qs("#logout-btn");if(lb)lb.onclick=logout;},0);
 }
 
