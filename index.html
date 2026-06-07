@@ -848,11 +848,11 @@ function renderProfile(area){
     <span style="font-size:13px;padding:4px 14px;border-radius:20px;background:var(--chip);color:var(--muted);font-family:system-ui,-apple-system,sans-serif">${u.dept}</span>
     <button id="logout-btn" style="font-size:12px;padding:4px 14px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:system-ui,-apple-system,sans-serif">התנתק</button>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
     ${[
       ["🎯","ניחושים שלי",myBets.length+"/"+state.matches.length],
       ["⭐","הניקוד שלי",livePoints]
-    ].map(([e,l,v])=>`<div class="card" style="text-align:center;padding:14px 8px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:22px;margin:0 0 4px">${e}</p><p style="font-size:${String(v).length>8?"12":String(v).length>5?"14":"18"}px;font-weight:700;color:var(--text);margin:0 0 2px">${v}</p><p style="font-size:11px;color:var(--muted);margin:0">${l}</p></div>`).join("")}
+    ].map(([e,l,v])=>`<div class="card" style="text-align:center;padding:20px 12px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:28px;margin:0 0 8px">${e}</p><p style="font-size:26px;font-weight:700;color:var(--accent);margin:0 0 4px">${v}</p><p style="font-size:13px;font-weight:600;color:var(--text);margin:0">${l}</p></div>`).join("")}
   </div>
   ${u.winnerBet?`<div class="card" style="border:1.5px solid var(--accent);margin-bottom:10px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור אלופת המונדיאל</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">🌍 ${u.winnerBet}</p></div>`:""}
   ${u.scorerBet?`<div class="card" style="border:1.5px solid var(--green);margin-bottom:10px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור מלך השערים</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">👟 ${u.scorerBet}</p></div>`:""}
