@@ -1282,16 +1282,15 @@ async function init(){
       const me=users.find(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
       if(me){
         state.user={...state.user,...me};
-        // חשב נקודות מחדש לאחר קבלת נתוני המשתמש העדכניים
         const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
         if(state.user.points!==pts){
           state.user.points=pts;
           await fsSaveUser({...state.user,points:pts});
         }
       }
+      // רנדר מחדש רק אם המשתמש מחובר
+      if(["leaderboard","profile","matches"].includes(state.screen)){render();}
     }
-    // עדכן תצוגה בכל מסך רלוונטי
-    if(["leaderboard","profile","matches"].includes(state.screen)){render();}
   });
   fsListenSettings(settings=>{
     if(settings.scorers)state.scorers=settings.scorers;
@@ -1303,7 +1302,8 @@ async function init(){
         if(m){m.result=sm.result||null;m.locked=!!sm.locked;}
       });
     }
-    if(["matches","prizes","scorer","winner"].includes(state.screen))render();
+    // רנדר מחדש רק אם המשתמש מחובר ובמסך הרלוונטי
+    if(state.user&&["matches","prizes","scorer","winner"].includes(state.screen))render();
   });
 
   // Auto-login
