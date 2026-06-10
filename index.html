@@ -692,20 +692,47 @@ function renderWinner(area){
 // מסיר קידומות מיחידות משנה
 // מיפוי שמות ישנים → יחידה (תאימות לאחור)
 const LEGACY_DEPT_MAP = {
+  // מטה
   "מנהלה":"מטה","כספים":"מטה","מערכות מידע":"מטה","כספים ומערכות מידע":"מטה",
-  "משאבי אנוש":"מטה","תה":"מטה","מזון":"מטה","רכש":"מטה",
+  "משאבי אנוש":"מטה","מש\"א":"מטה","מש'א":"מטה",
+  "תה":"מטה","מזון":"מטה","רכש":"מטה",
   "בינלאומי":"מטה","בינלאומית":"מטה","מטה":"מטה",
-  "מכירות":"מכירות",
-  "תפעול (מפעל)":"מפעל","מפעל":"מפעל","תפ\"י":"מפעל",
+  "מטה- תה":"מטה","מטה - תה":"מטה",
+  "מטה- מש\"א":"מטה","מטה - מש\"א":"מטה",
+  "מטה- מזון":"מטה","מטה - מזון":"מטה",
+  "מטה- רכש":"מטה","מטה - רכש":"מטה",
+  "מטה- מערכות מידע":"מטה","מטה - מערכות מידע":"מטה",
+  "מטה- כספים":"מטה","מטה - כספים":"מטה",
+  "מטה- מנהלה":"מטה","מטה - מנהלה":"מטה",
+  "מטה- בינלאומית":"מטה","מטה - בינלאומית":"מטה",
+  // מכירות
+  "מכירות":"מכירות","חטיבת המכירות":"מכירות","חטיבת מכירות":"מכירות",
+  // מפעל
+  "תפעול (מפעל)":"מפעל","מפעל":"מפעל",
+  "מפעל- תפעול":"מפעל","מפעל - תפעול":"מפעל",
+  "תפ\"י":"מפעל","מפעל- תפ\"י":"מפעל","מפעל - תפ\"י":"מפעל","תפי":"מפעל",
+  // לוגיסטיקה
   "שרשרת אספקה":"לוגיסטיקה","לוגיסטיקה":"לוגיסטיקה",
+  "מרלו\"ג- לוגיסטיקה":"לוגיסטיקה","מרלו\"ג - לוגיסטיקה":"לוגיסטיקה",
+  "מרלוג- לוגיסטיקה":"לוגיסטיקה","מרלוג - לוגיסטיקה":"לוגיסטיקה",
 };
 
 function getDeptGroup(dept){
   if(!dept)return null;
+  // בדיקה מדויקת
   for(const [g,depts] of Object.entries(DEPT_GROUPS)){
     if(depts.includes(dept))return g;
   }
-  return LEGACY_DEPT_MAP[dept]||null;
+  if(LEGACY_DEPT_MAP[dept])return LEGACY_DEPT_MAP[dept];
+  // בדיקה גמישה – מתעלם מרווחים לפני/אחרי מקף
+  const normalized=dept.replace(/\s*-\s*/g,"-");
+  if(LEGACY_DEPT_MAP[normalized])return LEGACY_DEPT_MAP[normalized];
+  // בדיקה לפי prefix
+  if(dept.startsWith("מטה"))return "מטה";
+  if(dept.startsWith("מפעל"))return "מפעל";
+  if(dept.includes("לוגיסטיקה")||dept.includes("מרלו"))return "לוגיסטיקה";
+  if(dept.includes("מכירות"))return "מכירות";
+  return null;
 }
 
 function shortDeptName(name){
@@ -737,12 +764,15 @@ function renderLeaderboard(area){
     // בנה נתוני יחידות
     const groupMap={};
     Object.keys(DEPT_GROUPS).forEach(g=>{groupMap[g]={name:g,total:0,count:0,members:[],subDepts:DEPT_GROUPS[g]};});
+    const unmatched=[];
     state.liveUsers.forEach(u=>{
       const g=getDeptGroup(u.dept);
       if(g&&groupMap[g]){
         groupMap[g].total+=(u.points||0);
         groupMap[g].count++;
         groupMap[g].members.push(u);
+      } else {
+        unmatched.push(u);
       }
     });
 
