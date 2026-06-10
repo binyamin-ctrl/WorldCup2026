@@ -83,7 +83,7 @@ const DEPT_GROUPS = {
 
 // helper – always read from state so admin changes take effect live
 function getDepts(){ return state.departments||DEFAULT_DEPARTMENTS; }
-const DEFAULT_SCORERS = ["קיליאן מבאפה (צרפת)","אירלינג הולאנד (נורבגיה)","ויניסיוס ג'וניור (ברזיל)","לאמין יאמאל (ספרד)","הארי קיין (אנגליה)","ג'וד בלינגהאם (אנגליה)","פיל פודן (אנגליה)","רודריגו (ברזיל)","מוחמד סאלח (מצרים)","ליאו מסי (ארגנטינה)"];
+const DEFAULT_SCORERS = ["קיליאן מבאפה (צרפת)","אירלינג הולאנד (נורבגיה)","ויניסיוס ג'וניור (ברזיל)","לאמין יאמאל (ספרד)","הארי קיין (אנגליה)","ג'וד בלינגהאם (אנגליה)","פיל פודן (אנגליה)","רודריגו (ברזיל)","מוחמד סאלח (מצרים)","ליאו מסי (ארגנטינה)","כריסטיאנו רונאלדו (פורטוגל)"];
 const GROUPS = {"א":["מקסיקו","דרום קוריאה","דרום אפריקה","צ'כיה"],"ב":["קנדה","שוויץ","קטאר","בוסניה והרצגובינה"],"ג":["ברזיל","סקוטלנד","מרוקו","האיטי"],"ד":["ארצות הברית","אוסטרליה","פרגוואי","טורקיה"],"ה":["גרמניה","אקוודור","חוף השנהב","קוראסאו"],"ו":["הולנד","יפן","תוניסיה","שבדיה"],"ז":["בלגיה","מצרים","איראן","ניו זילנד"],"ח":["ספרד","אורוגוואי","ערב הסעודית","כף ורדה"],"ט":["צרפת","סנגל","נורווגיה","עיראק"],"י":["ארגנטינה","אלג'יריה","אוסטריה","ירדן"],"יא":["פורטוגל","קולומביה","הרפובליקה הדמוקרטית של קונגו","אוזבקיסטן"],"יב":["אנגליה","קרואטיה","גאנה","פנמה"]};
 const ALL_TEAMS = Object.values(GROUPS).flat();
 const SCHEDULE = [
@@ -1262,7 +1262,14 @@ async function renderAdminSecurity(content){
 async function init(){
   // Load settings from Firestore
   const settings=await fsGetSettings();
-  if(settings.scorers)state.scorers=settings.scorers;
+  if(settings.scorers){
+    const sc=settings.scorers;
+    if(!sc.some(s=>s.includes("רונאלדו"))){
+      sc.push("כריסטיאנו רונאלדו (פורטוגל)");
+      await fsSaveSettings({scorers:sc});
+    }
+    state.scorers=sc;
+  }
   if(settings.prizes)state.prizes=settings.prizes;
   // בדיקה – אם Firebase מחזיר רשימה ישנה נאפס לברירת מחדל החדשה
   const isOldDepts=(d)=>d&&d.some(x=>x==="מנהלה"||x==="שיווק"||x==="מפעל"||x==="שרשרת אספקה");
