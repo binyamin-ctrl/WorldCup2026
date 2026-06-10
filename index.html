@@ -1303,7 +1303,7 @@ async function init(){
         if(m){m.result=sm.result||null;m.locked=!!sm.locked;}
       });
     }
-    if(state.screen==="matches"||state.screen==="prizes")render();
+    if(["matches","prizes","scorer","winner"].includes(state.screen))render();
   });
 
   // Auto-login
