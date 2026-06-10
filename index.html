@@ -789,9 +789,8 @@ function renderLeaderboard(area){
       const card=el("div","card");if(i===0)card.style.borderLeft=`2px solid var(--gold)`;
       const membersHTML=d.members.sort((a,b)=>(b.points||0)-(a.points||0)).map(m=>`<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--muted)">${m.name} <strong style="color:var(--text)">${m.points||0}</strong></span>`).join("");
       const subDeptsHTML=`<p style="font-size:11px;color:var(--muted);margin:2px 0 0">${d.subDepts.map(shortDeptName).join(" · ")}</p>`;
-      const sizes=state.prizes.deptSizes||{};
-      // חשב אחוז אם הוגדר גודל יחידה
-      const totalInUnit=Object.entries(sizes).filter(([k])=>DEPT_GROUPS[d.name]?.includes(k)).reduce((s,[,v])=>s+(v||0),0)||sizes[d.name]||0;
+      const sizes=state.prizes.groupSizes||{};
+      const totalInUnit=sizes[d.name]||0;
       const pctStr=totalInUnit>0?` (${Math.round(d.count/totalInUnit*100)}%)`:"";
       card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${d.members.length?8:0}px">
         <div style="display:flex;align-items:center;gap:10px">
@@ -1189,17 +1188,16 @@ function renderAdminPrizes(content){
     content.appendChild(wrap);
   });
 
-  // גודל מחלקות – משתמשים ב-index כ-id כדי להימנע מבעיות עם רווחים/תווים
+  // כמות עובדים לפי 4 חטיבות אב – לחישוב אחוז השתתפות
   const sizeTitle=el("div","card");sizeTitle.style.marginTop="16px";
-  sizeTitle.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">🏢 מספר עובדים לכל מחלקה</p><p style="font-size:12px;color:var(--muted);margin:0">לשימוש עתידי – הזן את מספר העובדים הכולל בכל מחלקה</p>`;
+  sizeTitle.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">🏢 כמות עובדים לכל חטיבה</p><p style="font-size:12px;color:var(--muted);margin:0">הזן את מספר העובדים הכולל בכל חטיבת אב – לחישוב אחוז ההשתתפות</p>`;
   content.appendChild(sizeTitle);
 
-  const currentDepts=getDepts();
-  const sizes=state.prizes.deptSizes||{};
-  currentDepts.forEach((d,i)=>{
+  const groupSizes=state.prizes.groupSizes||{};
+  Object.keys(DEPT_GROUPS).forEach(g=>{
     const wrap=el("div");wrap.style.marginTop="8px";
-    wrap.innerHTML=`<label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px">${d}</label>
-      <input id="sz-dept-${i}" class="input" type="number" min="1" value="${sizes[d]||""}" placeholder="מס׳ עובדים..." style="padding:9px 14px;font-size:13px"/>`;
+    wrap.innerHTML=`<label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px">${g}</label>
+      <input id="gs-${g}" class="input" type="number" min="1" value="${groupSizes[g]||""}" placeholder="מס׳ עובדים כולל..."/>`;
     content.appendChild(wrap);
   });
 
@@ -1211,12 +1209,12 @@ function renderAdminPrizes(content){
       third:qs("#pr-third").value,
       winner:qs("#pr-winner").value,
     };
-    const deptSizes={};
-    currentDepts.forEach((d,i)=>{
-      const v=qs(`#sz-dept-${i}`);
-      if(v&&v.value)deptSizes[d]=parseInt(v.value)||0;
+    const groupSizes={};
+    Object.keys(DEPT_GROUPS).forEach(g=>{
+      const v=qs(`#gs-${g}`);
+      if(v&&v.value)groupSizes[g]=parseInt(v.value)||0;
     });
-    pr.deptSizes=deptSizes;
+    pr.groupSizes=groupSizes;
     state.prizes={...state.prizes,...pr};
     await fsSaveSettings({prizes:state.prizes});
     saveBtn.textContent="✓ נשמר!";setTimeout(()=>saveBtn.textContent="שמור הכל",2000);
