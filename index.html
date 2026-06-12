@@ -533,8 +533,8 @@ function matchCard(m){
   const card=el("div","card");
   let headerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
     <span style="font-size:11px;color:var(--muted)">בית ${m.group} · ${m.date} · ${m.time}</span>`;
-  if(betResult==="win")headerHTML+=`<span class="badge badge-green">+6 ✓</span>`;
-  else if(betResult==="loss")headerHTML+=`<span class="badge badge-red">+1</span>`;
+  if(betResult==="win")headerHTML+=`<span class="badge badge-green">+5 ✓</span>`;
+  else if(betResult==="loss")headerHTML+=`<span class="badge badge-red">0</span>`;
   else if(autoLocked)headerHTML+=`<span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 7px">⏰ מתחיל</span>`;
   else if(locked&&!m.result)headerHTML+=`<span style="font-size:11px;color:var(--muted)">🔒</span>`;
   headerHTML+="</div>";
