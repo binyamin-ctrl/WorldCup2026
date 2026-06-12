@@ -169,6 +169,8 @@ function teamColor(name){const p=["#1a6fa8","#b83232","#2e8b57","#8b5e2e","#6a4f
 
 // נעילה אוטומטית לפי שעת קיקאוף (שעון ישראל)
 function isMatchLocked(m){
+  // שחרור זמני למשתמש ספציפי ע"י מנהל
+  if(state.user&&state.user.tempUnlock&&!m.result) return false;
   // נעול ידנית ע"י מנהל
   if(m.locked||m.result) return true;
   // תאריך/שעה לא ידועים
@@ -922,7 +924,7 @@ function renderAdmin(){
   overlay.appendChild(tb);
 
   const tabBar=el("div","tab-bar");tabBar.style.margin="10px 16px 4px";
-  [["results","תוצאות"],["users","משתמשים"],["depts","מחלקות"],["scorers","מלך שערים"],["prizes","פרסים"],["security","🔐 אבטחה"]].forEach(([id,label])=>{
+  [["results","תוצאות"],["users","משתמשים"],["depts","מחלקות"],["scorers","מלך שערים"],["prizes","פרסים"],["security","🔐 אבטחה"],["backup","💾 גיבוי"]].forEach(([id,label])=>{
     const b=el("button","tab-btn"+(state.adminTab===id?" active":""));b.textContent=label;
     b.onclick=()=>{
       state.adminTab=id;
@@ -948,6 +950,7 @@ async function renderAdminContent(content){
   else if(state.adminTab==="scorers") renderAdminScorers(content);
   else if(state.adminTab==="prizes") renderAdminPrizes(content);
   else if(state.adminTab==="security") await renderAdminSecurity(content);
+  else if(state.adminTab==="backup") await renderAdminBackup(content);
 }
 
 function renderAdminResults(content){
@@ -1037,13 +1040,25 @@ async function renderAdminUsers(content){
   displayed.forEach(u=>{
     const card=el("div","card");card.style.display="flex";card.style.alignItems="center";card.style.gap="10px";
     card.innerHTML=`<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:800;flex-shrink:0">${u.name.slice(0,1)}</div>
-    <div style="flex:1;min-width:0"><p style="margin:0;font-weight:600;font-size:13px;color:var(--text)">${u.name}</p><p style="margin:0;font-size:11px;color:var(--muted)">${u.dept} · ${Object.keys(u.bets||{}).length} הימורים</p></div>
-    <button class="edit-btn" data-name="${u.name}" style="padding:5px 10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer">עריכה</button>
-    <button class="del-btn" data-name="${u.name}" style="padding:5px 10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--red);font-size:11px;cursor:pointer">מחק</button>`;
+    <div style="flex:1;min-width:0"><p style="margin:0;font-weight:600;font-size:13px;color:var(--text)">${u.name}</p><p style="margin:0;font-size:11px;color:var(--muted)">${u.dept} · ${Object.keys(u.bets||{}).length} ניחושים</p></div>
+    <button class="edit-btn" data-name="${u.name}" style="padding:5px 8px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-size:10px;cursor:pointer">עריכה</button>
+    <button class="bets-btn" data-name="${u.name}" style="padding:5px 8px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--accent);font-size:10px;cursor:pointer">ניחושים</button>
+    <button class="unlock-btn" data-name="${u.name}" style="padding:5px 8px;border-radius:8px;border:0.5px solid var(--border);background:${u.tempUnlock?'var(--green)':'transparent'};color:${u.tempUnlock?'#fff':'var(--muted)'};font-size:10px;cursor:pointer">${u.tempUnlock?'🔓':'🔒'}</button>
+    <button class="del-btn" data-name="${u.name}" style="padding:5px 8px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--red);font-size:10px;cursor:pointer">מחק</button>`;
     content.appendChild(card);
   });
 
   content.querySelectorAll(".edit-btn").forEach(b=>{b.onclick=()=>showEditUserForm(content,allUsers,b.dataset.name);});
+  content.querySelectorAll(".bets-btn").forEach(b=>{b.onclick=()=>showUserBetsEditor(content,b.dataset.name);});
+  content.querySelectorAll(".unlock-btn").forEach(b=>{b.onclick=async()=>{
+    const u=allUsers.find(x=>x.name===b.dataset.name);if(!u)return;
+    const newVal=!u.tempUnlock;
+    await fsSaveUser({...u,tempUnlock:newVal});
+    b.style.background=newVal?"var(--green)":"transparent";
+    b.style.color=newVal?"#fff":"var(--muted)";
+    b.textContent=newVal?"🔓 פתוח":"🔒 שחרר";
+    u.tempUnlock=newVal;
+  };});
   content.querySelectorAll(".del-btn").forEach(b=>{b.onclick=async()=>{
     if(!confirm(`למחוק את ${b.dataset.name}?`))return;
     await fsDeleteUser(b.dataset.name);renderAdminContent(content);
@@ -1081,8 +1096,9 @@ function showEditUserForm(content,allUsers,name){
   const form=el("div","card");form.style.border="1.5px solid var(--accent)";
   form.innerHTML=`<p style="font-weight:700;font-size:13px;color:var(--text);margin:0 0 10px">עריכת משתמש: ${u.name}</p>
   <input id="edit-name" class="input" value="${u.name}" style="margin-bottom:8px"/>
-  <input id="edit-pwd" class="input" type="password" placeholder="סיסמה חדשה (השאר ריק = ללא שינוי)" style="margin-bottom:8px"/>
-  <div id="edit-dept-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+  <div id="edit-dept-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+  <input id="edit-pwd" class="input" type="password" placeholder="סיסמה חדשה (השאר ריק = ללא שינוי)" style="margin-bottom:4px"/>
+  <p style="font-size:11px;color:var(--green);margin:0 0 10px">✓ ניחושים ונקודות נשמרים בכל מקרה</p>
   <div style="display:flex;gap:8px">
     <button id="edit-ok" class="btn" style="margin-top:0">שמור</button>
     <button id="edit-cancel" class="btn" style="margin-top:0;background:transparent;color:var(--muted);border:0.5px solid var(--border)">ביטול</button>
@@ -1097,10 +1113,14 @@ function showEditUserForm(content,allUsers,name){
   qs("#edit-cancel").onclick=()=>form.remove();
   qs("#edit-ok").onclick=async()=>{
     const newName=qs("#edit-name").value.trim(),newPwd=qs("#edit-pwd").value;
-    const updated={...u,name:newName,dept:selDept};
+    if(!newName){return;}
+    // טען נתונים עדכניים מ-Firebase לפני עדכון – למניעת מחיקת ניחושים
+    const freshUser=await fsGetUser(u.name)||u;
+    const updated={...freshUser,name:newName,dept:selDept};
     if(newPwd&&newPwd.length>=4)updated.pwdHash=hashPwd(newPwd);
     if(newName!==u.name){await fsDeleteUser(u.name);}
-    await fsSaveUser(updated);form.remove();renderAdminContent(content);
+    await fsSaveUser(updated);
+    form.remove();renderAdminContent(content);
   };
 }
 
@@ -1255,6 +1275,133 @@ async function renderAdminSecurity(content){
     await setDoc(doc(db,"settings","admin"),{password:p1});
     qs("#save-admin-pwd").textContent="✓ נשמר ב-Firebase!";
     setTimeout(()=>renderAdminSecurity(content),1500);
+  };
+}
+
+// ── Admin Backup Tab ──────────────────────────────────────────────────────────
+async function renderAdminBackup(content){
+  const info=el("div","card");
+  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">💾 גיבוי ושחזור</p>
+    <p style="font-size:12px;color:var(--muted);margin:0">הורד גיבוי מלא של כל המשתמשים וניחושיהם. שמור את הקובץ במחשב. לשחזור – העלה קובץ גיבוי.</p>`;
+  content.appendChild(info);
+
+  // כפתור ייצוא
+  const exportBtn=el("button","btn");exportBtn.style.marginTop="10px";exportBtn.textContent="⬇️ הורד גיבוי עכשיו";
+  exportBtn.onclick=async()=>{
+    exportBtn.textContent="...טוען";exportBtn.disabled=true;
+    const allUsers=await fsGetAllUsers();
+    const settings=await fsGetSettings();
+    const backup={timestamp:new Date().toISOString(),users:allUsers,settings};
+    const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=`mundial2026-backup-${new Date().toLocaleDateString("he-IL").replace(/\//g,"-")}.json`;
+    a.click();URL.revokeObjectURL(url);
+    exportBtn.textContent="✓ גיבוי הורד!";exportBtn.disabled=false;
+    setTimeout(()=>exportBtn.textContent="⬇️ הורד גיבוי עכשיו",3000);
+  };
+  content.appendChild(exportBtn);
+
+  // כפתור ייבוא
+  const importCard=el("div","card");importCard.style.marginTop="10px";
+  importCard.innerHTML=`<p style="font-weight:700;font-size:13px;color:var(--text);margin:0 0 8px">⬆️ שחזור מגיבוי</p>
+    <p style="font-size:12px;color:var(--red);margin:0 0 10px">⚠️ שחזור ידרוס נתונים קיימים. בצע גיבוי לפני כן!</p>
+    <input id="backup-file" type="file" accept=".json" style="width:100%;margin-bottom:10px"/>
+    <button id="import-btn" class="btn" style="margin-top:0;background:var(--red)">שחזר מגיבוי</button>
+    <div id="import-status" style="margin-top:8px;font-size:12px;color:var(--muted)"></div>`;
+  content.appendChild(importCard);
+
+  qs("#import-btn").onclick=async()=>{
+    const file=qs("#backup-file").files[0];
+    if(!file){qs("#import-status").textContent="יש לבחור קובץ";return;}
+    if(!confirm("האם אתה בטוח? פעולה זו תדרוס נתונים קיימים!"))return;
+    qs("#import-btn").textContent="...משחזר";qs("#import-btn").disabled=true;
+    const text=await file.text();
+    const backup=JSON.parse(text);
+    // שחזר משתמשים
+    for(const u of backup.users){
+      await fsSaveUser(u);
+    }
+    // שחזר הגדרות
+    if(backup.settings){await fsSaveSettings(backup.settings);}
+    qs("#import-status").textContent=`✓ שוחזרו ${backup.users.length} משתמשים בהצלחה!`;
+    qs("#import-btn").textContent="שחזר מגיבוי";qs("#import-btn").disabled=false;
+  };
+}
+
+// ── Admin User Bets Editor ────────────────────────────────────────────────────
+async function showUserBetsEditor(content, userName){
+  // טען נתוני משתמש עדכניים
+  const u=await fsGetUser(userName);
+  if(!u){alert("משתמש לא נמצא");return;}
+
+  // הסר פורם קודם אם קיים
+  const existing=qs("#bets-editor-form");
+  if(existing)existing.remove();
+
+  const form=el("div","card");form.id="bets-editor-form";
+  form.style.cssText="border:1.5px solid var(--accent);margin-top:8px";
+
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <p style="font-weight:700;font-size:13px;color:var(--text);margin:0">עריכת ניחושים: ${u.name}</p>
+    <button id="bets-editor-close" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted)">✕</button>
+  </div>`;
+
+  // משחקים שלא הסתיימו עדיין (ללא תוצאה) או שהמשתמש ניחש
+  const relevantMatches=state.matches.filter(m=>!m.result||u.bets?.[m.id]);
+  relevantMatches.forEach(m=>{
+    const cur=u.bets?.[m.id]||"";
+    const locked=!!m.result;
+    html+=`<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
+      <p style="margin:0 0 4px;font-size:12px;color:var(--text);font-weight:600">${m.home} נ׳ ${m.away} <span style="color:var(--muted);font-weight:400">${m.date}</span>${m.result?`<span style="color:var(--green);font-size:11px"> ✓ תוצאה: ${m.result}</span>`:""}
+      </p>
+      <div style="display:flex;gap:6px">
+        ${[["2",m.home],["X","תיקו"],["1",m.away]].map(([v,label])=>`
+          <button class="bet-edit-btn" data-mid="${m.id}" data-val="${v}"
+            style="flex:1;padding:5px;border-radius:6px;border:0.5px solid var(--border);cursor:pointer;font-size:11px;font-weight:600;
+            background:${cur===v?"var(--accent)":"var(--chip)"};color:${cur===v?"#fff":"var(--muted)"}">
+            ${v} – ${label.length>6?label.slice(0,6)+"…":label}
+          </button>`).join("")}
+        ${cur?`<button class="bet-clear-btn" data-mid="${m.id}" style="padding:5px 8px;border-radius:6px;border:0.5px solid var(--border);background:transparent;color:var(--red);font-size:11px;cursor:pointer">✕</button>`:""}
+      </div>
+    </div>`;
+  });
+
+  html+=`<button id="save-bets-btn" class="btn" style="margin-top:12px">שמור ניחושים</button>`;
+  form.innerHTML=html;
+  content.insertBefore(form,content.children[1]);
+
+  qs("#bets-editor-close").onclick=()=>form.remove();
+
+  // עדכון ניחוש בלחיצה
+  const currentBets={...u.bets||{}};
+  form.querySelectorAll(".bet-edit-btn").forEach(btn=>{
+    btn.onclick=()=>{
+      const mid=btn.dataset.mid,val=btn.dataset.val;
+      currentBets[mid]=val;
+      form.querySelectorAll(`[data-mid="${mid}"]`).forEach(b=>{
+        if(b.dataset.val){b.style.background=b.dataset.val===val?"var(--accent)":"var(--chip)";b.style.color=b.dataset.val===val?"#fff":"var(--muted)";}
+      });
+    };
+  });
+  form.querySelectorAll(".bet-clear-btn").forEach(btn=>{
+    btn.onclick=()=>{
+      delete currentBets[btn.dataset.mid];
+      form.querySelectorAll(`[data-mid="${btn.dataset.mid}"]`).forEach(b=>{
+        if(b.dataset.val){b.style.background="var(--chip)";b.style.color="var(--muted)";}
+      });
+      btn.remove();
+    };
+  });
+
+  qs("#save-bets-btn").onclick=async()=>{
+    qs("#save-bets-btn").textContent="...שומר";qs("#save-bets-btn").disabled=true;
+    const updated={...u,bets:currentBets};
+    const pts=calcPoints(updated,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+    updated.points=pts;
+    await fsSaveUser(updated);
+    qs("#save-bets-btn").textContent="✓ נשמר!";
+    setTimeout(()=>form.remove(),1500);
   };
 }
 
