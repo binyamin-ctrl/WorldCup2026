@@ -1342,13 +1342,18 @@ async function showUserBetsEditor(content, userName){
   const form=el("div","card");form.id="bets-editor-form";
   form.style.cssText="border:1.5px solid var(--accent);margin-top:8px";
 
-  let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
     <p style="font-weight:700;font-size:13px;color:var(--text);margin:0">עריכת ניחושים: ${u.name}</p>
     <button id="bets-editor-close" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted)">✕</button>
-  </div>`;
+  </div>
+  <p style="font-size:11px;color:var(--muted);margin:0 0 10px">✅ משחקים עם תוצאה מוצגים גם הם לצורך תיקון</p>
+  <div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px">
+    ${Object.keys(GROUPS).map(g=>`<button class="group-filter-btn" data-group="${g}" style="padding:3px 8px;border-radius:20px;flex-shrink:0;border:0.5px solid var(--border);background:var(--chip);color:var(--muted);font-size:10px;cursor:pointer">בית ${g}</button>`).join("")}
+  </div>
+  <div id="bets-match-list"></div>`;
 
-  // משחקים שלא הסתיימו עדיין (ללא תוצאה) או שהמשתמש ניחש
-  const relevantMatches=state.matches.filter(m=>!m.result||u.bets?.[m.id]);
+  // הצג את כל המשחקים – גם שהסתיימו (לצורך תיקון ניחושים)
+  const relevantMatches=state.matches;
   relevantMatches.forEach(m=>{
     const cur=u.bets?.[m.id]||"";
     const locked=!!m.result;
@@ -1371,26 +1376,60 @@ async function showUserBetsEditor(content, userName){
   form.innerHTML=html;
   content.insertBefore(form,content.children[1]);
 
-  qs("#bets-editor-close").onclick=()=>form.remove();
-
-  // עדכון ניחוש בלחיצה
   const currentBets={...u.bets||{}};
-  form.querySelectorAll(".bet-edit-btn").forEach(btn=>{
+
+  // פונקציה לרינדור רשימת משחקים לפי בית
+  function renderBetsList(filterGroup){
+    const list=qs("#bets-match-list");
+    const matches=filterGroup?relevantMatches.filter(m=>m.group===filterGroup):relevantMatches;
+    list.innerHTML=matches.map(m=>{
+      const cur=currentBets[m.id]||"";
+      return `<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
+        <p style="margin:0 0 4px;font-size:12px;color:var(--text);font-weight:600">
+          ${m.home} נ׳ ${m.away}
+          <span style="color:var(--muted);font-weight:400;font-size:11px"> · ${m.date}</span>
+          ${m.result?`<span style="color:var(--green);font-size:11px"> ✓ תוצאה: ${m.result==="2"?m.home:m.result==="1"?m.away:"תיקו"}</span>`:""}
+        </p>
+        <div style="display:flex;gap:6px">
+          ${[["2",m.home],["X","תיקו"],["1",m.away]].map(([v,label])=>`
+            <button class="bet-edit-btn" data-mid="${m.id}" data-val="${v}"
+              style="flex:1;padding:5px;border-radius:6px;border:0.5px solid var(--border);cursor:pointer;font-size:11px;font-weight:600;
+              background:${cur===v?"var(--accent)":"var(--chip)"};color:${cur===v?"#fff":"var(--muted)"}">
+              ${v} – ${label.length>6?label.slice(0,6)+"…":label}
+            </button>`).join("")}
+          ${cur?`<button class="bet-clear-btn" data-mid="${m.id}" style="padding:5px 8px;border-radius:6px;border:0.5px solid var(--border);background:transparent;color:var(--red);font-size:11px;cursor:pointer">✕</button>`:""}
+        </div>
+      </div>`;
+    }).join("");
+
+    // wire buttons
+    list.querySelectorAll(".bet-edit-btn").forEach(btn=>{
+      btn.onclick=()=>{
+        const mid=btn.dataset.mid,val=btn.dataset.val;
+        currentBets[mid]=val;
+        renderBetsList(filterGroup);
+      };
+    });
+    list.querySelectorAll(".bet-clear-btn").forEach(btn=>{
+      btn.onclick=()=>{
+        delete currentBets[btn.dataset.mid];
+        renderBetsList(filterGroup);
+      };
+    });
+  }
+
+  let activeGroup=null;
+  renderBetsList(null);
+
+  // סינון לפי בית
+  form.querySelectorAll(".group-filter-btn").forEach(btn=>{
     btn.onclick=()=>{
-      const mid=btn.dataset.mid,val=btn.dataset.val;
-      currentBets[mid]=val;
-      form.querySelectorAll(`[data-mid="${mid}"]`).forEach(b=>{
-        if(b.dataset.val){b.style.background=b.dataset.val===val?"var(--accent)":"var(--chip)";b.style.color=b.dataset.val===val?"#fff":"var(--muted)";}
+      activeGroup=activeGroup===btn.dataset.group?null:btn.dataset.group;
+      form.querySelectorAll(".group-filter-btn").forEach(b=>{
+        b.style.background=b.dataset.group===activeGroup?"var(--accent)":"var(--chip)";
+        b.style.color=b.dataset.group===activeGroup?"#fff":"var(--muted)";
       });
-    };
-  });
-  form.querySelectorAll(".bet-clear-btn").forEach(btn=>{
-    btn.onclick=()=>{
-      delete currentBets[btn.dataset.mid];
-      form.querySelectorAll(`[data-mid="${btn.dataset.mid}"]`).forEach(b=>{
-        if(b.dataset.val){b.style.background="var(--chip)";b.style.color="var(--muted)";}
-      });
-      btn.remove();
+      renderBetsList(activeGroup);
     };
   });
 
