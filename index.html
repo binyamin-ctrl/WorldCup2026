@@ -183,8 +183,10 @@ function isMatchLocked(m){
     const month=months[parts[1]];
     const year=2026;
     const [hh,mm]=m.time.split(":").map(Number);
-    // השעות כבר בשעון ישראל – בונים Date לפי UTC+3
-    const kickoff=new Date(Date.UTC(year,month-1,day,hh-3,mm));
+    // בונים תאריך ב-UTC: שעון ישראל הוא UTC+3 בקיץ
+    // נשתמש ב-Date ישירות עם שעון ישראל
+    const kickoffStr=`${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}T${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00+03:00`;
+    const kickoff=new Date(kickoffStr);
     return Date.now()>=kickoff.getTime();
   }catch(e){return false;}
 }
