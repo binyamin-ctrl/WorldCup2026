@@ -1348,7 +1348,28 @@ async function showUserBetsEditor(content, userName){
     <p style="font-weight:700;font-size:13px;color:var(--text);margin:0">עריכת ניחושים: ${u.name}</p>
     <button id="bets-editor-close" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted)">✕</button>
   </div>
-  <p style="font-size:11px;color:var(--muted);margin:0 0 10px">✅ משחקים עם תוצאה מוצגים גם הם לצורך תיקון</p>
+
+  <!-- מלך השערים -->
+  <div style="background:var(--chip);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+    <p style="font-weight:700;font-size:12px;color:var(--text);margin:0 0 6px">👟 מלך השערים</p>
+    <p style="font-size:11px;color:var(--muted);margin:0 0 6px">נוכחי: <strong style="color:var(--text)">${u.scorerBet||"לא נבחר"}</strong></p>
+    <select id="scorer-select" style="width:100%;padding:7px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface);font-size:12px;color:var(--text);direction:rtl">
+      <option value="">-- ביטול בחירה --</option>
+      ${[...state.scorers].sort((a,b)=>a.localeCompare(b,"he")).map(s=>`<option value="${s}" ${u.scorerBet===s?"selected":""}>${s}</option>`).join("")}
+    </select>
+  </div>
+
+  <!-- אלופת המונדיאל -->
+  <div style="background:var(--chip);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+    <p style="font-weight:700;font-size:12px;color:var(--text);margin:0 0 6px">🌍 אלופת המונדיאל</p>
+    <p style="font-size:11px;color:var(--muted);margin:0 0 6px">נוכחי: <strong style="color:var(--text)">${u.winnerBet||"לא נבחר"}</strong></p>
+    <select id="winner-select" style="width:100%;padding:7px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface);font-size:12px;color:var(--text);direction:rtl">
+      <option value="">-- ביטול בחירה --</option>
+      ${[...ALL_TEAMS].sort((a,b)=>a.localeCompare(b,"he")).map(t=>`<option value="${t}" ${u.winnerBet===t?"selected":""}>${t}</option>`).join("")}
+    </select>
+  </div>
+
+  <p style="font-size:11px;color:var(--muted);margin:0 0 8px">✅ משחקים עם תוצאה מוצגים גם הם לצורך תיקון</p>
   <div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px">
     ${Object.keys(GROUPS).map(g=>`<button class="group-filter-btn" data-group="${g}" style="padding:3px 8px;border-radius:20px;flex-shrink:0;border:0.5px solid var(--border);background:var(--chip);color:var(--muted);font-size:10px;cursor:pointer">בית ${g}</button>`).join("")}
   </div>
@@ -1437,12 +1458,13 @@ async function showUserBetsEditor(content, userName){
 
   qs("#save-bets-btn").onclick=async()=>{
     qs("#save-bets-btn").textContent="...שומר";qs("#save-bets-btn").disabled=true;
-    // טען נתונים עדכניים מ-Firebase לפני שמירה – מניעת דריסת נתונים
     const freshUser=await fsGetUser(u.name)||u;
-    const updated={...freshUser,bets:currentBets};
+    const newScorer=qs("#scorer-select")?qs("#scorer-select").value||null:freshUser.scorerBet;
+    const newWinner=qs("#winner-select")?qs("#winner-select").value||null:freshUser.winnerBet;
+    const updated={...freshUser,bets:currentBets,scorerBet:newScorer,winnerBet:newWinner};
     const pts=calcPoints(updated,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
     updated.points=pts;
-    await setDoc(doc(db,"users",updated.name.toLowerCase()),updated); // setDoc ללא merge – כדי לוודא שמחיקות גם נשמרות
+    await setDoc(doc(db,"users",updated.name.toLowerCase()),updated);
     qs("#save-bets-btn").textContent="✓ נשמר! " + pts + " נקודות";
     setTimeout(()=>form.remove(),2000);
   };
