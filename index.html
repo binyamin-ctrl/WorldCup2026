@@ -767,13 +767,15 @@ function renderLeaderboard(area){
   } else if(state.leaderTab==="dept"){
     // בנה נתוני יחידות
     const groupMap={};
-    Object.keys(DEPT_GROUPS).forEach(g=>{groupMap[g]={name:g,total:0,count:0,members:[],subDepts:DEPT_GROUPS[g]};});
+    Object.keys(DEPT_GROUPS).forEach(g=>{groupMap[g]={name:g,total:0,count:0,guessed:0,members:[],subDepts:DEPT_GROUPS[g]};});
     const unmatched=[];
     state.liveUsers.forEach(u=>{
       const g=getDeptGroup(u.dept);
       if(g&&groupMap[g]){
         groupMap[g].total+=(u.points||0);
-        groupMap[g].count++;
+        groupMap[g].count++; // כל מי שנרשם
+        // סופר רק מי שניחש לפחות פעם אחת
+        if(u.bets&&Object.keys(u.bets).length>0) groupMap[g].guessed++;
         groupMap[g].members.push(u);
       } else {
         unmatched.push(u);
@@ -786,28 +788,30 @@ function renderLeaderboard(area){
     infoBar.innerHTML=`🏅 היחידה עם אחוז המשתתפים הגבוה ביותר תזכה לאקסטרה Happy Hour!<br>כל עובד יחידה שנכנס לאפליקציה מעלה את אחוז ההשתתפות של היחידה ואת הסיכוי שלה לזכות!<br>כל עובד שמנחש צובר נקודה חד פעמית ליחידה שלו!`;
     area.appendChild(infoBar);
 
-    // דירוג לפי כמות משתתפים (= נקודות יחידה)
-    const byScore=Object.values(groupMap).sort((a,b)=>b.count-a.count);
+    // דירוג לפי אחוז השתתפות (מי שניחש לפחות פעם אחת)
+    const byScore=Object.values(groupMap).sort((a,b)=>b.guessed-a.guessed);
 
     byScore.forEach((d,i)=>{
       const card=el("div","card");if(i===0)card.style.borderLeft=`2px solid var(--gold)`;
       const subDeptsHTML=`<p style="font-size:11px;color:var(--muted);margin:2px 0 0">${d.subDepts.map(shortDeptName).join(" · ")}</p>`;
       const sizes=state.prizes.groupSizes||{};
       const totalInUnit=sizes[d.name]||0;
-      const pctStr=totalInUnit>0?` מתוך ${totalInUnit} (${Math.round(d.count/totalInUnit*100)}%)`:"";
-      const totalPts=d.members.reduce((s,m)=>s+(m.points||0),0);
+      const pct=totalInUnit>0?Math.round(d.guessed/totalInUnit*100):null;
+      const pctStr=totalInUnit>0?` מתוך ${totalInUnit} (${pct}%)`:"";
+      const displayVal=pct!==null?pct+"%":d.guessed;
+      const displayLabel=pct!==null?"השתתפות":"משתתפים";
       card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:10px">
           <span style="width:26px;text-align:center;font-size:${i===0?20:13}px;color:${i===0?"var(--gold)":"var(--muted)"};font-weight:700">${i===0?"🥇":i+1}</span>
           <div>
             <p style="margin:0;font-weight:700;font-size:15px;color:var(--text)">${d.name}</p>
             ${subDeptsHTML}
-            <p style="margin:2px 0 0;font-size:12px;color:var(--muted)">${d.count} משתתפים${pctStr}</p>
+            <p style="margin:2px 0 0;font-size:12px;color:var(--muted)">${d.guessed} ניחשו${pctStr}</p>
           </div>
         </div>
         <div style="text-align:left">
-          <p style="margin:0;font-size:20px;font-weight:800;color:var(--accent)">${totalPts}</p>
-          <p style="margin:0;font-size:10px;color:var(--muted)">נקודות</p>
+          <p style="margin:0;font-size:20px;font-weight:800;color:var(--accent)">${displayVal}</p>
+          <p style="margin:0;font-size:10px;color:var(--muted)">${displayLabel}</p>
         </div>
       </div>`;
       area.appendChild(card);
