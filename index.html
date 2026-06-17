@@ -798,8 +798,7 @@ function renderLeaderboard(area){
       const totalInUnit=sizes[d.name]||0;
       const pct=totalInUnit>0?Math.round(d.guessed/totalInUnit*100):null;
       const pctStr=totalInUnit>0?` מתוך ${totalInUnit} (${pct}%)`:"";
-      const displayVal=pct!==null?pct+"%":d.guessed;
-      const displayLabel=pct!==null?"השתתפות":"משתתפים";
+      const displayVal=pct!==null?pct:d.guessed;
       card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:10px">
           <span style="width:26px;text-align:center;font-size:${i===0?20:13}px;color:${i===0?"var(--gold)":"var(--muted)"};font-weight:700">${i===0?"🥇":i+1}</span>
@@ -811,7 +810,7 @@ function renderLeaderboard(area){
         </div>
         <div style="text-align:left">
           <p style="margin:0;font-size:20px;font-weight:800;color:var(--accent)">${displayVal}</p>
-          <p style="margin:0;font-size:10px;color:var(--muted)">${displayLabel}</p>
+          <p style="margin:0;font-size:10px;color:var(--muted)">נקודות</p>
         </div>
       </div>`;
       area.appendChild(card);
