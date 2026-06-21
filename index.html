@@ -1653,22 +1653,26 @@ async function saveResultFromAPI(match, homeScore, awayScore, homeHeb, awayHeb){
 
 // שליפת תוצאות – מחזיר סיכום
 async function fetchResultsFromAPI(){
-  const API_URL = "https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED";
-  const PROXIES = [
-    "https://api.allorigins.win/raw?url=",
-    "https://corsproxy.io/?",
-    "https://cors-anywhere.herokuapp.com/",
-  ];
-  let res=null, lastErr="";
-  for(const proxy of PROXIES){
+  const API_URL = `https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED`;
+  // allorigins.win מאפשר העברת headers דרך query param
+  const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(API_URL)}&headers=${encodeURIComponent(JSON.stringify({"X-Auth-Token":FD_API_KEY}))}`;
+  let res, data;
+  try{
+    res=await fetch(PROXY_URL);
+    if(!res.ok) throw new Error(`proxy ${res.status}`);
+    const wrapper=await res.json();
+    data=JSON.parse(wrapper.contents);
+  }catch(e){
+    // נסיון ישיר (אולי ה-API מאפשר CORS)
     try{
-      res=await fetch(proxy+encodeURIComponent(API_URL),{headers:{"X-Auth-Token":FD_API_KEY}});
-      if(res.ok) break;
-    }catch(e){lastErr=e.message;res=null;}
+      res=await fetch(API_URL,{headers:{"X-Auth-Token":FD_API_KEY,"Origin":"https://binyamin-ctrl.github.io"}});
+      if(!res.ok) throw new Error(`direct ${res.status}`);
+      data=await res.json();
+    }catch(e2){
+      throw new Error(e2.message);
+    }
   }
-  if(!res||!res.ok) throw new Error("Failed to fetch: "+lastErr);
-  const data=await res.json();
-  if(!data.matches) return {updated:0,skipped:0,log:[]};
+  if(!data?.matches) return {updated:0,skipped:0,log:[]};
   let updated=0, skipped=0;
   const log=[];
   for(const m of data.matches){
