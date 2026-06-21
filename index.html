@@ -1653,7 +1653,8 @@ async function saveResultFromAPI(match, homeScore, awayScore, homeHeb, awayHeb){
 
 // שליפת תוצאות – מחזיר סיכום
 async function fetchResultsFromAPI(){
-  const res=await fetch("https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED",{
+  const PROXY = "https://corsproxy.io/?";
+  const res=await fetch(PROXY+encodeURIComponent("https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED"),{
     headers:{"X-Auth-Token":FD_API_KEY}
   });
   if(!res.ok) throw new Error(`API ${res.status}`);
@@ -1662,8 +1663,13 @@ async function fetchResultsFromAPI(){
   let updated=0, skipped=0;
   const log=[];
   for(const m of data.matches){
-    const h=hebrewTeam(m.homeTeam?.name), a=hebrewTeam(m.awayTeam?.name);
-    if(!h||!a){skipped++;log.push(`⚠️ לא מזוהה: ${m.homeTeam?.name} vs ${m.awayTeam?.name}`);continue;}
+    const apiHome=m.homeTeam?.name, apiAway=m.awayTeam?.name;
+    const h=hebrewTeam(apiHome), a=hebrewTeam(apiAway);
+    if(!h||!a){
+      skipped++;
+      log.push(`⚠️ לא מזוהה: "${apiHome}" vs "${apiAway}"`);
+      continue;
+    }
     const localMatch=findMatchByTeams(m.homeTeam.name, m.awayTeam.name);
     if(!localMatch){skipped++;log.push(`⚠️ לא נמצא: ${h} vs ${a}`);continue;}
     if(localMatch.result){continue;} // כבר מעודכן
