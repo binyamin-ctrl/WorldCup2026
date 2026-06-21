@@ -1653,26 +1653,16 @@ async function saveResultFromAPI(match, homeScore, awayScore, homeHeb, awayHeb){
 
 // שליפת תוצאות – מחזיר סיכום
 async function fetchResultsFromAPI(){
-  const API_URL = `https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED`;
-  // allorigins.win מאפשר העברת headers דרך query param
-  const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(API_URL)}&headers=${encodeURIComponent(JSON.stringify({"X-Auth-Token":FD_API_KEY}))}`;
+  const WORKER_URL = "https://mondialproxy.wteashivuk.workers.dev/";
   let res, data;
   try{
-    res=await fetch(PROXY_URL);
-    if(!res.ok) throw new Error(`proxy ${res.status}`);
-    const wrapper=await res.json();
-    data=JSON.parse(wrapper.contents);
+    res=await fetch(WORKER_URL);
+    if(!res.ok) throw new Error(`Worker ${res.status}`);
+    data=await res.json();
   }catch(e){
-    // נסיון ישיר (אולי ה-API מאפשר CORS)
-    try{
-      res=await fetch(API_URL,{headers:{"X-Auth-Token":FD_API_KEY,"Origin":"https://binyamin-ctrl.github.io"}});
-      if(!res.ok) throw new Error(`direct ${res.status}`);
-      data=await res.json();
-    }catch(e2){
-      throw new Error(e2.message);
-    }
+    throw new Error(e.message);
   }
-  if(!data?.matches) return {updated:0,skipped:0,log:[]};
+  if(!data?.matches) return {updated:0,skipped:0,log:["⚠️ אין נתונים מה-API"]};
   let updated=0, skipped=0;
   const log=[];
   for(const m of data.matches){
