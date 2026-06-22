@@ -1445,11 +1445,56 @@ async function showUserBetsEditor(content, userName){
     </div>`;
   });
 
-  html+=`<button id="save-bets-btn" class="btn" style="margin-top:12px">שמור ניחושים</button>`;
+  html+=`
+  <div id="points-breakdown" style="background:var(--chip);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px">
+    <p style="font-weight:700;color:var(--text);margin:0 0 6px">📊 חישוב נקודות מפורט</p>
+    <div id="breakdown-content" style="color:var(--muted);line-height:1.9"></div>
+  </div>
+  <button id="save-bets-btn" class="btn" style="margin-top:8px">שמור ניחושים</button>`;
   form.innerHTML=html;
   content.insertBefore(form,content.children[1]);
 
   const currentBets={...u.bets||{}};
+
+  // פונקציה לחישוב ועדכון פירוט הנקודות
+  function updateBreakdown(){
+    const bc=qs("#breakdown-content");
+    if(!bc)return;
+    let pts=0, rows=[];
+    // נקודה על כל ניחוש
+    const guessCount=Object.keys(currentBets).length;
+    pts+=guessCount;
+    rows.push(`✏️ ${guessCount} ניחושים × 1 = <strong>${guessCount} נקודות</strong>`);
+    // נקודות על ניחושים נכונים
+    let correctCount=0;
+    state.matches.forEach(m=>{
+      if(m.result&&currentBets[m.id]&&currentBets[m.id]===m.result){
+        correctCount++;
+        const betLabel=currentBets[m.id]==="2"?m.home:currentBets[m.id]==="1"?m.away:"תיקו";
+        rows.push(`✅ ${m.home} נ׳ ${m.away} – ניחשת <strong>${betLabel}</strong> = <strong>+5</strong>`);
+        pts+=5;
+      }
+    });
+    if(correctCount===0) rows.push(`❌ אין ניחושים נכונים עדיין`);
+    // מלך שערים
+    const scorerSel=qs("#scorer-select");
+    const scorerVal=scorerSel?scorerSel.value:u.scorerBet;
+    if(scorerVal&&state.prizes.topScorer&&scorerVal===state.prizes.topScorer){
+      rows.push(`👟 מלך שערים נכון = <strong>+8</strong>`); pts+=8;
+    } else if(scorerVal){
+      rows.push(`👟 מלך שערים: ${scorerVal} ${state.prizes.topScorer?"(לא נכון)":"(טרם נקבע)"}`);
+    }
+    // אלופת המונדיאל
+    const winnerSel=qs("#winner-select");
+    const winnerVal=winnerSel?winnerSel.value:u.winnerBet;
+    if(winnerVal&&state.prizes.winner&&winnerVal===state.prizes.winner){
+      rows.push(`🌍 אלופת מונדיאל נכון = <strong>+10</strong>`); pts+=10;
+    } else if(winnerVal){
+      rows.push(`🌍 אלופת מונדיאל: ${winnerVal} ${state.prizes.winner?"(לא נכון)":"(טרם נקבע)"}`);
+    }
+    rows.push(`<strong style="color:var(--accent);font-size:13px">סה״כ: ${pts} נקודות (שמור ב-Firebase: ${u.points||0})</strong>`);
+    bc.innerHTML=rows.join("<br>");
+  }
 
   // פונקציה לרינדור רשימת משחקים לפי בית
   function renderBetsList(filterGroup){
@@ -1481,18 +1526,21 @@ async function showUserBetsEditor(content, userName){
         const mid=btn.dataset.mid,val=btn.dataset.val;
         currentBets[mid]=val;
         renderBetsList(filterGroup);
+        updateBreakdown();
       };
     });
     list.querySelectorAll(".bet-clear-btn").forEach(btn=>{
       btn.onclick=()=>{
         delete currentBets[btn.dataset.mid];
         renderBetsList(filterGroup);
+        updateBreakdown();
       };
     });
   }
 
   let activeGroup=null;
   renderBetsList(null);
+  updateBreakdown();
 
   // סינון לפי בית
   form.querySelectorAll(".group-filter-btn").forEach(btn=>{
@@ -1503,8 +1551,16 @@ async function showUserBetsEditor(content, userName){
         b.style.color=b.dataset.group===activeGroup?"#fff":"var(--muted)";
       });
       renderBetsList(activeGroup);
+      updateBreakdown();
     };
   });
+
+  // עדכון פירוט כשמשנים מלך שערים / אלופת מונדיאל
+  setTimeout(()=>{
+    const ss=qs("#scorer-select"),ws=qs("#winner-select");
+    if(ss)ss.onchange=updateBreakdown;
+    if(ws)ws.onchange=updateBreakdown;
+  },100);
 
   qs("#save-bets-btn").onclick=async()=>{
     qs("#save-bets-btn").textContent="...שומר";qs("#save-bets-btn").disabled=true;
