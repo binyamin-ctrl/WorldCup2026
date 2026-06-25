@@ -577,13 +577,9 @@ function renderGroupStandings(group){
 
   sorted.forEach((t,i)=>{
     const s=stats[t];
-    const isQualify=i<2;
-    const rankBg=isQualify?"background:#e6f1fb;color:#185fa5":"background:var(--chip);color:var(--muted)";
     html+=`<tr style="border-bottom:0.5px solid var(--border)">
-      <td style="padding:6px 4px;text-align:center">
-        <span style="${rankBg};border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${i+1}</span>
-      </td>
-      <td style="padding:6px 4px;color:var(--text);font-weight:${isQualify?600:400}">${t}</td>
+      <td style="padding:6px 4px;text-align:center;color:var(--muted);font-size:11px">${i+1}</td>
+      <td style="padding:6px 4px;color:var(--text)">${t}</td>
       <td style="text-align:center;padding:6px 4px;color:var(--muted)">${s.p}</td>
       <td style="text-align:center;padding:6px 4px;color:var(--green);font-weight:${s.w?600:400}">${s.w}</td>
       <td style="text-align:center;padding:6px 4px;color:var(--muted)">${s.d}</td>
@@ -593,7 +589,7 @@ function renderGroupStandings(group){
   });
 
   html+=`</tbody></table>
-  <p style="font-size:10px;color:var(--muted);margin:6px 0 0;text-align:right">מ=משחקים · נ=נצחון · ת=תיקו · ה=הפסד · נק=נקודות · <span style="color:#185fa5">■</span> עולים לנוקאאוט</p>`;
+  <p style="font-size:10px;color:var(--muted);margin:6px 0 0;text-align:right">מ=משחקים · נ=נצחון · ת=תיקו · ה=הפסד · נק=נקודות</p>`;
   card.innerHTML=html;
   return card;
 }
