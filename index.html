@@ -523,8 +523,79 @@ function renderMatches(area){
   if(state.activeGroup==="נוקאאוט"){
     renderKnockout(area);return;
   }
+
+  // טבלת בית
+  const standingsCard=renderGroupStandings(state.activeGroup);
+  if(standingsCard)area.appendChild(standingsCard);
+
   const groupMatches=state.matches.filter(m=>m.group===state.activeGroup);
   groupMatches.forEach(m=>area.appendChild(matchCard(m)));
+}
+
+function renderGroupStandings(group){
+  const teams=GROUPS[group];
+  if(!teams)return null;
+  const groupMatches=state.matches.filter(m=>m.group===group&&m.result);
+  if(!groupMatches.length)return null; // אין תוצאות עדיין
+
+  // חשב סטטיסטיקות
+  const stats={};
+  teams.forEach(t=>{stats[t]={p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0};});
+
+  // קבל שערים מה-API (אם קיים) – אחרת רק נ/ת/ה לפי תוצאה
+  groupMatches.forEach(m=>{
+    const hs=stats[m.home], as=stats[m.away];
+    if(!hs||!as)return;
+    hs.p++; as.p++;
+    if(m.result==="2"){hs.w++;hs.pts+=3;as.l++;}
+    else if(m.result==="1"){as.w++;as.pts+=3;hs.l++;}
+    else{hs.d++;as.d++;hs.pts++;as.pts++;}
+  });
+
+  const sorted=teams.slice().sort((a,b)=>{
+    const sa=stats[a],sb=stats[b];
+    if(sb.pts!==sa.pts)return sb.pts-sa.pts;
+    return (sb.gf-sb.ga)-(sa.gf-sa.ga);
+  });
+
+  const card=el("div","card");
+  card.style.marginBottom="10px";
+  let html=`<p style="font-weight:700;font-size:13px;color:var(--text);margin:0 0 8px">טבלת בית ${group}</p>
+  <table style="width:100%;font-size:12px;border-collapse:collapse">
+    <thead>
+      <tr style="border-bottom:0.5px solid var(--border)">
+        <th style="text-align:right;padding:3px 4px;color:var(--muted);font-weight:400">#</th>
+        <th style="text-align:right;padding:3px 4px;color:var(--muted);font-weight:400">נבחרת</th>
+        <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">מ</th>
+        <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">נ</th>
+        <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">ת</th>
+        <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">ה</th>
+        <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">נק</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  sorted.forEach((t,i)=>{
+    const s=stats[t];
+    const isQualify=i<2;
+    const rankBg=isQualify?"background:#e6f1fb;color:#185fa5":"background:var(--chip);color:var(--muted)";
+    html+=`<tr style="border-bottom:0.5px solid var(--border)">
+      <td style="padding:6px 4px;text-align:center">
+        <span style="${rankBg};border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${i+1}</span>
+      </td>
+      <td style="padding:6px 4px;color:var(--text);font-weight:${isQualify?600:400}">${t}</td>
+      <td style="text-align:center;padding:6px 4px;color:var(--muted)">${s.p}</td>
+      <td style="text-align:center;padding:6px 4px;color:var(--green);font-weight:${s.w?600:400}">${s.w}</td>
+      <td style="text-align:center;padding:6px 4px;color:var(--muted)">${s.d}</td>
+      <td style="text-align:center;padding:6px 4px;color:${s.l?"var(--red)":"var(--muted)"};font-weight:${s.l?600:400}">${s.l}</td>
+      <td style="text-align:center;padding:6px 4px;font-weight:700;color:var(--accent)">${s.pts}</td>
+    </tr>`;
+  });
+
+  html+=`</tbody></table>
+  <p style="font-size:10px;color:var(--muted);margin:6px 0 0;text-align:right">מ=משחקים · נ=נצחון · ת=תיקו · ה=הפסד · נק=נקודות · <span style="color:#185fa5">■</span> עולים לנוקאאוט</p>`;
+  card.innerHTML=html;
+  return card;
 }
 
 function matchCard(m){
