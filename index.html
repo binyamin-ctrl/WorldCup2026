@@ -680,114 +680,117 @@ function renderMatchesRefresh(){
   renderMatches(area);
 }
 
+// משחקי נוקאאוט ידועים – מוזן ידנית ומתעדכן תוצאות מה-API
+const KNOCKOUT_MATCHES = [
+  // שלב 32 האחרונות
+  {id:"ko73",stage:"LAST_16",home:"קנדה",away:"דרום אפריקה",date:"28 יוני",time:"22:00",city:"לוס אנג'לס"},
+  {id:"ko76",stage:"LAST_16",home:"ברזיל",away:"יפן",date:"29 יוני",time:"20:00",city:"מונטריי"},
+  {id:"ko74",stage:"LAST_16",home:"גרמניה",away:"פרגוואי",date:"29 יוני",time:"23:30",city:"יוסטון"},
+  {id:"ko75",stage:"LAST_16",home:"הולנד",away:"מרוקו",date:"30 יוני",time:"04:00",city:"בוסטון"},
+  {id:"ko78",stage:"LAST_16",home:"חוף השנהב",away:"נורווגיה",date:"30 יוני",time:"20:00",city:"ניו ג'רזי"},
+  {id:"ko77",stage:"LAST_16",home:"צרפת",away:"שבדיה",date:"1 יולי",time:"00:00",city:"דאלאס"},
+  {id:"ko79",stage:"LAST_16",home:"מקסיקו",away:null,date:"1 יולי",time:"04:00",city:"מקסיקו סיטי"},
+  {id:"ko80",stage:"LAST_16",home:null,away:null,date:"1 יולי",time:"19:00",city:"אטלנטה"},
+  {id:"ko82",stage:"LAST_16",home:"בלגיה",away:null,date:"1 יולי",time:"23:00",city:"סן פרנסיסקו"},
+  {id:"ko81",stage:"LAST_16",home:"ארצות הברית",away:"בוסניה",date:"2 יולי",time:"03:00",city:"סיאטל"},
+  {id:"ko84",stage:"LAST_16",home:"ספרד",away:null,date:"2 יולי",time:"22:00",city:"טורונטו"},
+  {id:"ko83",stage:"LAST_16",home:null,away:null,date:"3 יולי",time:"02:00",city:"לוס אנג'לס"},
+  {id:"ko85",stage:"LAST_16",home:"שוויץ",away:null,date:"3 יולי",time:"06:00",city:"ונקובר"},
+  {id:"ko86",stage:"LAST_16",home:"אוסטרליה",away:"מצרים",date:"3 יולי",time:"21:00",city:"דאלאס"},
+  {id:"ko88",stage:"LAST_16",home:"ארגנטינה",away:"כף ורדה",date:"4 יולי",time:"01:00",city:"קנזס סיטי"},
+  {id:"ko87",stage:"LAST_16",home:null,away:null,date:"4 יולי",time:"04:30",city:"מיאמי"},
+  // שלבים הבאים – ייוספו אוטומטית
+];
+
 async function fetchKnockoutMatches(){
-  try{
-    // שליפה נפרדת לכל שלב כדי לעקוף מגבלת ה-API
-    const stages=["LAST_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"];
-    const allMatches=[];
-    for(const stage of stages){
-      const res=await fetch(`https://mondialproxy.wteashivuk.workers.dev/?type=knockout&stage=${stage}`);
-      if(!res.ok) continue;
-      const data=await res.json();
-      if(data.matches) allMatches.push(...data.matches);
-    }
-    return allMatches.length>0?allMatches:null;
-  }catch(e){return null;}
+  // החזר את הרשימה הידועה – תוצאות יגיעו מה-API
+  return KNOCKOUT_MATCHES;
 }
 
 async function renderKnockout(area){
-  const info=el("div","card");
+  const matches=await fetchKnockoutMatches();
+  const stages={
+    "LAST_16":"שלב 32 האחרונות",
+    "QUARTER_FINALS":"רבע גמר",
+    "SEMI_FINALS":"חצי גמר",
+    "THIRD_PLACE":"🥉 משחק מקום שלישי",
+    "FINAL":"🏆 הגמר"
+  };
 
-  const apiMatches=await fetchKnockoutMatches();
+  const byStage={};
+  matches.forEach(m=>{
+    if(!byStage[m.stage])byStage[m.stage]=[];
+    byStage[m.stage].push(m);
+  });
 
-  if(apiMatches&&apiMatches.length>0){
-    const stages={
-      "LAST_16":"שלב 32 האחרונות",
-      "QUARTER_FINALS":"רבע גמר",
-      "SEMI_FINALS":"חצי גמר",
-      "THIRD_PLACE":"משחק מקום שלישי",
-      "FINAL":"🏆 הגמר"
-    };
-    const byStage={};
-    apiMatches.forEach(m=>{
-      const s=m.stage||"LAST_16";
-      if(!byStage[s])byStage[s]=[];
-      byStage[s].push(m);
+  Object.entries(stages).forEach(([stageKey,stageLabel])=>{
+    const stageMatches=byStage[stageKey];
+    if(!stageMatches||!stageMatches.length)return;
+
+    const title=el("p");
+    title.style.cssText="font-weight:700;font-size:14px;color:var(--text);margin:14px 0 6px;padding-bottom:4px;border-bottom:0.5px solid var(--border)";
+    title.textContent=stageLabel;
+    area.appendChild(title);
+
+    stageMatches.forEach(m=>{
+      const homeHeb=m.home||null;
+      const awayHeb=m.away||null;
+      const months={"יוני":6,"יולי":7};
+      const parts=m.date.split(" ");
+      const day=parseInt(parts[0]),month=months[parts[1]];
+      const [hh,mm]=m.time.split(":").map(Number);
+      const kickoff=new Date(`2026-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}T${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00+03:00`);
+      const isLocked=kickoff<=new Date()||!!m.result;
+      const userBet=state.user?.bets?.[m.id];
+      const result=m.result||null;
+      const betResult=userBet&&result?(userBet===result?"win":"loss"):null;
+
+      const card=el("div","card");
+      let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;color:var(--muted)">${m.date} · ${m.time}${m.city?" · "+m.city:""}</span>`;
+      if(betResult==="win")h+=`<span class="badge badge-green">+5 ✓</span>`;
+      else if(betResult==="loss")h+=`<span class="badge badge-red">0</span>`;
+      else if(isLocked&&!result)h+=`<span style="font-size:11px;color:var(--muted)">🔒</span>`;
+      h+=`</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-weight:600;font-size:13px;color:var(--text);flex:1">${homeHeb||"⏳ טרם נקבע"}</span>
+        <span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 6px;flex-shrink:0">נ׳</span>
+        <span style="font-weight:600;font-size:13px;color:var(--text);flex:1;text-align:left">${awayHeb||"⏳ טרם נקבע"}</span>
+      </div>`;
+      card.innerHTML=h;
+
+      if(homeHeb&&awayHeb&&(!isLocked||userBet)){
+        const chipsDiv=el("div","bet-chips");
+        [[2,homeHeb],["X","תיקו"],[1,awayHeb]].forEach(([v,label])=>{
+          const isSelected=userBet===String(v);
+          const b=el("button","bet-chip"+(isSelected?" sel":"")+(isLocked&&!isSelected?" disabled":""));
+          b.style.opacity=isLocked&&!isSelected?"0.32":"1";
+          b.innerHTML=`<span>${v}</span><span style="font-size:9px">${String(label).length>6?String(label).slice(0,6)+"…":String(label)}</span>`;
+          if(!isLocked)b.onclick=async()=>{
+            const newVal=isSelected?null:String(v);
+            if(newVal===null){
+              delete state.user.bets[m.id];
+              const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+              state.user.points=pts;
+              await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{["bets."+m.id]:deleteField(),points:pts});
+            } else {
+              state.user.bets[m.id]=newVal;
+              await saveBet(m.id,newVal);
+            }
+            renderMatchesRefresh();
+          };
+          chipsDiv.appendChild(b);
+        });
+        card.appendChild(chipsDiv);
+      } else if(!homeHeb||!awayHeb){
+        const p=el("p");
+        p.style.cssText="font-size:11px;color:var(--muted);text-align:center;margin:4px 0 0";
+        p.textContent="הניחוש ייפתח ברגע שהנבחרות יתבררו";
+        card.appendChild(p);
+      }
+      area.appendChild(card);
     });
-
-    Object.entries(stages).forEach(([stageKey,stageLabel])=>{
-      const matches=byStage[stageKey];
-      if(!matches||!matches.length)return;
-
-      const stageTitle=el("p");
-      stageTitle.style.cssText="font-weight:700;font-size:14px;color:var(--text);margin:14px 0 6px;padding-bottom:4px;border-bottom:0.5px solid var(--border)";
-      stageTitle.textContent=stageLabel;
-      area.appendChild(stageTitle);
-
-      matches.forEach(m=>{
-        const homeHeb=m.homeTeam?.name?hebrewTeam(m.homeTeam.name)||m.homeTeam.name:null;
-        const awayHeb=m.awayTeam?.name?hebrewTeam(m.awayTeam.name)||m.awayTeam.name:null;
-        const matchDate=new Date(m.utcDate);
-        const dateStr=matchDate.toLocaleDateString("he-IL",{day:"numeric",month:"numeric",timeZone:"Asia/Jerusalem"});
-        const timeStr=matchDate.toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Jerusalem"});
-        const matchId="ko_"+m.id;
-        const userBet=state.user?.bets?.[matchId];
-        const now=new Date();
-        const isLocked=matchDate<=now||m.status==="FINISHED"||m.status==="IN_PLAY";
-        const result=m.status==="FINISHED"?(m.score?.winner==="HOME_TEAM"?"2":m.score?.winner==="AWAY_TEAM"?"1":"X"):null;
-        const betResult=userBet&&result?(userBet===result?"win":"loss"):null;
-
-        const card=el("div","card");
-        let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span style="font-size:11px;color:var(--muted)">${dateStr} · ${timeStr}</span>`;
-        if(betResult==="win")h+=`<span class="badge badge-green">+5 ✓</span>`;
-        else if(betResult==="loss")h+=`<span class="badge badge-red">0</span>`;
-        else if(isLocked&&!result)h+=`<span style="font-size:11px;color:var(--muted)">🔒</span>`;
-        h+=`</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="font-weight:600;font-size:13px;color:var(--text);flex:1">${homeHeb||"⏳ טרם נקבע"}</span>
-          <span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 6px;flex-shrink:0">נ׳</span>
-          <span style="font-weight:600;font-size:13px;color:var(--text);flex:1;text-align:left">${awayHeb||"⏳ טרם נקבע"}</span>
-        </div>`;
-        card.innerHTML=h;
-
-        // כפתורי ניחוש – רק אם שתי נבחרות ידועות ולא נעול
-        if(homeHeb&&awayHeb&&(!isLocked||userBet)){
-          const chipsDiv=el("div","bet-chips");
-          [[2,homeHeb],["X","תיקו"],[1,awayHeb]].forEach(([v,label])=>{
-            const isSelected=userBet===String(v);
-            const b=el("button","bet-chip"+(isSelected?" sel":"")+(isLocked&&!isSelected?" disabled":""));
-            b.style.opacity=isLocked&&!isSelected?"0.32":"1";
-            b.innerHTML=`<span>${v}</span><span style="font-size:9px">${String(label).length>6?String(label).slice(0,6)+"…":String(label)}</span>`;
-            if(!isLocked)b.onclick=async()=>{
-              const newVal=isSelected?null:String(v);
-              if(newVal===null){
-                delete state.user.bets[matchId];
-                const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
-                state.user.points=pts;
-                await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{[`bets.${matchId}`]:deleteField(),points:pts});
-              } else {
-                state.user.bets[matchId]=newVal;
-                await saveBet(matchId,newVal);
-              }
-              renderMatchesRefresh();
-            };
-            chipsDiv.appendChild(b);
-          });
-          card.appendChild(chipsDiv);
-        } else if(!homeHeb||!awayHeb){
-          const p=el("p");
-          p.style.cssText="font-size:11px;color:var(--muted);text-align:center;margin:4px 0 0";
-          p.textContent="הניחוש ייפתח ברגע שהנבחרות יתברר";
-          card.appendChild(p);
-        }
-        area.appendChild(card);
-      });
-    });
-  } else {
-    info.innerHTML=`<div style="text-align:center;padding:10px"><p style="font-size:28px;margin:0 0 8px">⏳</p><p style="font-weight:700;font-size:15px;color:var(--text);margin:0 0 4px">שלב הנוקאאוט יתחיל ב-4 ביולי</p><p style="font-size:13px;color:var(--muted);margin:0">הניחושים ייפתחו ברגע שהנבחרות יתבררו</p></div>`;
-    area.appendChild(info);
-  }
+  });
 }
 
 // ── Scorer screen ─────────────────────────────────────────────────────────────
@@ -826,16 +829,29 @@ async function renderScorer(area){
 }
 
 async function renderTopScorersTable(area){
-  // כרטיס טבלה עם loading
   const card=el("div","card");card.style.marginBottom="12px";
-  card.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 8px">⚽ טבלת מלך השערים – TOP 10</p><p style="font-size:12px;color:var(--muted);margin:0">טוען...</p>`;
+  card.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 8px">⚽ טבלת מלך השערים – TOP 10</p><p style="font-size:12px;color:var(--muted);margin:0">⏳ טוען...</p>`;
   area.appendChild(card);
 
   try{
-    const res=await fetch("https://mondialproxy.wteashivuk.workers.dev/?type=scorers");
-    if(!res.ok) throw new Error();
-    const data=await res.json();
-    const scorers=(data.scorers||[]).slice(0,10);
+    // cache יומי – שמור ב-sessionStorage
+    const cacheKey="scorers_cache";
+    const cacheDate="scorers_date";
+    const today=new Date().toDateString();
+    let scorers=null;
+
+    if(sessionStorage.getItem(cacheDate)===today&&sessionStorage.getItem(cacheKey)){
+      scorers=JSON.parse(sessionStorage.getItem(cacheKey));
+    } else {
+      const res=await fetch("https://mondialproxy.wteashivuk.workers.dev/?type=scorers");
+      if(!res.ok) throw new Error("API "+res.status);
+      const data=await res.json();
+      scorers=(data.scorers||[]).slice(0,10);
+      sessionStorage.setItem(cacheKey,JSON.stringify(scorers));
+      sessionStorage.setItem(cacheDate,today);
+    }
+
+    if(!scorers||!scorers.length) throw new Error("אין נתונים");
 
     const medals=["🥇","🥈","🥉"];
     let html=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 8px">⚽ טבלת מלך השערים – TOP 10</p>
@@ -849,19 +865,20 @@ async function renderTopScorersTable(area){
 
     scorers.forEach((s,i)=>{
       const teamHeb=hebrewTeam(s.team?.name)||s.team?.name||"";
-      const isUserPick=state.user?.scorerBet&&state.user.scorerBet.includes(s.player?.lastName||"");
+      const playerName=hebrewPlayer(s.player?.name||"");
+      const isUserPick=state.user?.scorerBet&&state.user.scorerBet.includes(s.player?.lastName||s.player?.name||"__");
       html+=`<tr style="border-bottom:0.5px solid var(--border);${isUserPick?"background:var(--chip)":""}">
         <td style="text-align:center;padding:7px 4px;font-size:${i<3?15:12}px">${i<3?medals[i]:i+1}</td>
-        <td style="padding:7px 4px;color:var(--text);font-weight:${i<3?600:400}">${hebrewPlayer(s.player?.name||"")}</td>
+        <td style="padding:7px 4px;color:var(--text);font-weight:${i<3?600:400}">${playerName}</td>
         <td style="padding:7px 4px;color:var(--muted)">${teamHeb}</td>
         <td style="text-align:center;padding:7px 4px;font-weight:700;color:var(--accent);font-size:${i<3?15:13}px">${s.goals}</td>
       </tr>`;
     });
 
-    html+=`</tbody></table><p style="font-size:10px;color:var(--muted);margin:6px 0 0;text-align:left">מתעדכן אוטומטית</p>`;
+    html+=`</tbody></table><p style="font-size:10px;color:var(--muted);margin:6px 0 0;text-align:left">מתעדכן פעם ביום</p>`;
     card.innerHTML=html;
   }catch(e){
-    card.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">⚽ טבלת מלך השערים</p><p style="font-size:12px;color:var(--muted);margin:0">לא ניתן לטעון כרגע</p>`;
+    card.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">⚽ טבלת מלך השערים</p><p style="font-size:12px;color:var(--red);margin:0">לא ניתן לטעון כרגע – נסה שוב מאוחר יותר</p>`;
   }
 }
 
