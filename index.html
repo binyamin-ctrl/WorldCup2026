@@ -680,117 +680,108 @@ function renderMatchesRefresh(){
   renderMatches(area);
 }
 
-// משחקי נוקאאוט ידועים – מוזן ידנית ומתעדכן תוצאות מה-API
-const KNOCKOUT_MATCHES = [
-  // שלב 32 האחרונות
-  {id:"ko73",stage:"LAST_16",home:"קנדה",away:"דרום אפריקה",date:"28 יוני",time:"22:00",city:"לוס אנג'לס"},
-  {id:"ko76",stage:"LAST_16",home:"ברזיל",away:"יפן",date:"29 יוני",time:"20:00",city:"מונטריי"},
-  {id:"ko74",stage:"LAST_16",home:"גרמניה",away:"פרגוואי",date:"29 יוני",time:"23:30",city:"יוסטון"},
-  {id:"ko75",stage:"LAST_16",home:"הולנד",away:"מרוקו",date:"30 יוני",time:"04:00",city:"בוסטון"},
-  {id:"ko78",stage:"LAST_16",home:"חוף השנהב",away:"נורווגיה",date:"30 יוני",time:"20:00",city:"ניו ג'רזי"},
-  {id:"ko77",stage:"LAST_16",home:"צרפת",away:"שבדיה",date:"1 יולי",time:"00:00",city:"דאלאס"},
-  {id:"ko79",stage:"LAST_16",home:"מקסיקו",away:null,date:"1 יולי",time:"04:00",city:"מקסיקו סיטי"},
-  {id:"ko80",stage:"LAST_16",home:null,away:null,date:"1 יולי",time:"19:00",city:"אטלנטה"},
-  {id:"ko82",stage:"LAST_16",home:"בלגיה",away:null,date:"1 יולי",time:"23:00",city:"סן פרנסיסקו"},
-  {id:"ko81",stage:"LAST_16",home:"ארצות הברית",away:"בוסניה",date:"2 יולי",time:"03:00",city:"סיאטל"},
-  {id:"ko84",stage:"LAST_16",home:"ספרד",away:null,date:"2 יולי",time:"22:00",city:"טורונטו"},
-  {id:"ko83",stage:"LAST_16",home:null,away:null,date:"3 יולי",time:"02:00",city:"לוס אנג'לס"},
-  {id:"ko85",stage:"LAST_16",home:"שוויץ",away:null,date:"3 יולי",time:"06:00",city:"ונקובר"},
-  {id:"ko86",stage:"LAST_16",home:"אוסטרליה",away:"מצרים",date:"3 יולי",time:"21:00",city:"דאלאס"},
-  {id:"ko88",stage:"LAST_16",home:"ארגנטינה",away:"כף ורדה",date:"4 יולי",time:"01:00",city:"קנזס סיטי"},
-  {id:"ko87",stage:"LAST_16",home:null,away:null,date:"4 יולי",time:"04:30",city:"מיאמי"},
-  // שלבים הבאים – ייוספו אוטומטית
-];
-
 async function fetchKnockoutMatches(){
-  // החזר את הרשימה הידועה – תוצאות יגיעו מה-API
-  return KNOCKOUT_MATCHES;
+  try{
+    const res=await fetch("https://mondialproxy.wteashivuk.workers.dev/?type=knockout");
+    if(!res.ok) return null;
+    const data=await res.json();
+    return data.matches||null;
+  }catch(e){return null;}
 }
 
 async function renderKnockout(area){
-  const matches=await fetchKnockoutMatches();
-  const stages={
-    "LAST_16":"שלב 32 האחרונות",
-    "QUARTER_FINALS":"רבע גמר",
-    "SEMI_FINALS":"חצי גמר",
-    "THIRD_PLACE":"🥉 משחק מקום שלישי",
-    "FINAL":"🏆 הגמר"
-  };
+  const info=el("div","card");
 
-  const byStage={};
-  matches.forEach(m=>{
-    if(!byStage[m.stage])byStage[m.stage]=[];
-    byStage[m.stage].push(m);
-  });
+  const apiMatches=await fetchKnockoutMatches();
 
-  Object.entries(stages).forEach(([stageKey,stageLabel])=>{
-    const stageMatches=byStage[stageKey];
-    if(!stageMatches||!stageMatches.length)return;
-
-    const title=el("p");
-    title.style.cssText="font-weight:700;font-size:14px;color:var(--text);margin:14px 0 6px;padding-bottom:4px;border-bottom:0.5px solid var(--border)";
-    title.textContent=stageLabel;
-    area.appendChild(title);
-
-    stageMatches.forEach(m=>{
-      const homeHeb=m.home||null;
-      const awayHeb=m.away||null;
-      const months={"יוני":6,"יולי":7};
-      const parts=m.date.split(" ");
-      const day=parseInt(parts[0]),month=months[parts[1]];
-      const [hh,mm]=m.time.split(":").map(Number);
-      const kickoff=new Date(`2026-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}T${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00+03:00`);
-      const isLocked=kickoff<=new Date()||!!m.result;
-      const userBet=state.user?.bets?.[m.id];
-      const result=m.result||null;
-      const betResult=userBet&&result?(userBet===result?"win":"loss"):null;
-
-      const card=el("div","card");
-      let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:11px;color:var(--muted)">${m.date} · ${m.time}${m.city?" · "+m.city:""}</span>`;
-      if(betResult==="win")h+=`<span class="badge badge-green">+5 ✓</span>`;
-      else if(betResult==="loss")h+=`<span class="badge badge-red">0</span>`;
-      else if(isLocked&&!result)h+=`<span style="font-size:11px;color:var(--muted)">🔒</span>`;
-      h+=`</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span style="font-weight:600;font-size:13px;color:var(--text);flex:1">${homeHeb||"⏳ טרם נקבע"}</span>
-        <span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 6px;flex-shrink:0">נ׳</span>
-        <span style="font-weight:600;font-size:13px;color:var(--text);flex:1;text-align:left">${awayHeb||"⏳ טרם נקבע"}</span>
-      </div>`;
-      card.innerHTML=h;
-
-      if(homeHeb&&awayHeb&&(!isLocked||userBet)){
-        const chipsDiv=el("div","bet-chips");
-        [[2,homeHeb],["X","תיקו"],[1,awayHeb]].forEach(([v,label])=>{
-          const isSelected=userBet===String(v);
-          const b=el("button","bet-chip"+(isSelected?" sel":"")+(isLocked&&!isSelected?" disabled":""));
-          b.style.opacity=isLocked&&!isSelected?"0.32":"1";
-          b.innerHTML=`<span>${v}</span><span style="font-size:9px">${String(label).length>6?String(label).slice(0,6)+"…":String(label)}</span>`;
-          if(!isLocked)b.onclick=async()=>{
-            const newVal=isSelected?null:String(v);
-            if(newVal===null){
-              delete state.user.bets[m.id];
-              const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
-              state.user.points=pts;
-              await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{["bets."+m.id]:deleteField(),points:pts});
-            } else {
-              state.user.bets[m.id]=newVal;
-              await saveBet(m.id,newVal);
-            }
-            renderMatchesRefresh();
-          };
-          chipsDiv.appendChild(b);
-        });
-        card.appendChild(chipsDiv);
-      } else if(!homeHeb||!awayHeb){
-        const p=el("p");
-        p.style.cssText="font-size:11px;color:var(--muted);text-align:center;margin:4px 0 0";
-        p.textContent="הניחוש ייפתח ברגע שהנבחרות יתבררו";
-        card.appendChild(p);
-      }
-      area.appendChild(card);
+  if(apiMatches&&apiMatches.length>0){
+    const stages={
+      "LAST_16":"שלב 32 האחרונות",
+      "QUARTER_FINALS":"רבע גמר",
+      "SEMI_FINALS":"חצי גמר",
+      "THIRD_PLACE":"משחק מקום שלישי",
+      "FINAL":"🏆 הגמר"
+    };
+    const byStage={};
+    apiMatches.forEach(m=>{
+      const s=m.stage||"LAST_16";
+      if(!byStage[s])byStage[s]=[];
+      byStage[s].push(m);
     });
-  });
+
+    Object.entries(stages).forEach(([stageKey,stageLabel])=>{
+      const matches=byStage[stageKey];
+      if(!matches||!matches.length)return;
+
+      const stageTitle=el("p");
+      stageTitle.style.cssText="font-weight:700;font-size:14px;color:var(--text);margin:14px 0 6px;padding-bottom:4px;border-bottom:0.5px solid var(--border)";
+      stageTitle.textContent=stageLabel;
+      area.appendChild(stageTitle);
+
+      matches.forEach(m=>{
+        const homeHeb=m.homeTeam?.name?hebrewTeam(m.homeTeam.name)||m.homeTeam.name:null;
+        const awayHeb=m.awayTeam?.name?hebrewTeam(m.awayTeam.name)||m.awayTeam.name:null;
+        const matchDate=new Date(m.utcDate);
+        const dateStr=matchDate.toLocaleDateString("he-IL",{day:"numeric",month:"numeric",timeZone:"Asia/Jerusalem"});
+        const timeStr=matchDate.toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Jerusalem"});
+        const matchId="ko_"+m.id;
+        const userBet=state.user?.bets?.[matchId];
+        const now=new Date();
+        const isLocked=matchDate<=now||m.status==="FINISHED"||m.status==="IN_PLAY";
+        const result=m.status==="FINISHED"?(m.score?.winner==="HOME_TEAM"?"2":m.score?.winner==="AWAY_TEAM"?"1":"X"):null;
+        const betResult=userBet&&result?(userBet===result?"win":"loss"):null;
+
+        const card=el("div","card");
+        let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11px;color:var(--muted)">${dateStr} · ${timeStr}</span>`;
+        if(betResult==="win")h+=`<span class="badge badge-green">+5 ✓</span>`;
+        else if(betResult==="loss")h+=`<span class="badge badge-red">0</span>`;
+        else if(isLocked&&!result)h+=`<span style="font-size:11px;color:var(--muted)">🔒</span>`;
+        h+=`</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-weight:600;font-size:13px;color:var(--text);flex:1">${homeHeb||"⏳ טרם נקבע"}</span>
+          <span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 6px;flex-shrink:0">נ׳</span>
+          <span style="font-weight:600;font-size:13px;color:var(--text);flex:1;text-align:left">${awayHeb||"⏳ טרם נקבע"}</span>
+        </div>`;
+        card.innerHTML=h;
+
+        // כפתורי ניחוש – רק אם שתי נבחרות ידועות ולא נעול
+        if(homeHeb&&awayHeb&&(!isLocked||userBet)){
+          const chipsDiv=el("div","bet-chips");
+          [[2,homeHeb],["X","תיקו"],[1,awayHeb]].forEach(([v,label])=>{
+            const isSelected=userBet===String(v);
+            const b=el("button","bet-chip"+(isSelected?" sel":"")+(isLocked&&!isSelected?" disabled":""));
+            b.style.opacity=isLocked&&!isSelected?"0.32":"1";
+            b.innerHTML=`<span>${v}</span><span style="font-size:9px">${String(label).length>6?String(label).slice(0,6)+"…":String(label)}</span>`;
+            if(!isLocked)b.onclick=async()=>{
+              const newVal=isSelected?null:String(v);
+              if(newVal===null){
+                delete state.user.bets[matchId];
+                const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+                state.user.points=pts;
+                await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{[`bets.${matchId}`]:deleteField(),points:pts});
+              } else {
+                state.user.bets[matchId]=newVal;
+                await saveBet(matchId,newVal);
+              }
+              renderMatchesRefresh();
+            };
+            chipsDiv.appendChild(b);
+          });
+          card.appendChild(chipsDiv);
+        } else if(!homeHeb||!awayHeb){
+          const p=el("p");
+          p.style.cssText="font-size:11px;color:var(--muted);text-align:center;margin:4px 0 0";
+          p.textContent="הניחוש ייפתח ברגע שהנבחרות יתברר";
+          card.appendChild(p);
+        }
+        area.appendChild(card);
+      });
+    });
+  } else {
+    info.innerHTML=`<div style="text-align:center;padding:10px"><p style="font-size:28px;margin:0 0 8px">⏳</p><p style="font-weight:700;font-size:15px;color:var(--text);margin:0 0 4px">שלב הנוקאאוט יתחיל ב-4 ביולי</p><p style="font-size:13px;color:var(--muted);margin:0">הניחושים ייפתחו ברגע שהנבחרות יתבררו</p></div>`;
+    area.appendChild(info);
+  }
 }
 
 // ── Scorer screen ─────────────────────────────────────────────────────────────
@@ -829,20 +820,17 @@ async function renderScorer(area){
 }
 
 async function renderTopScorersTable(area){
+  // כרטיס טבלה עם loading
   const card=el("div","card");card.style.marginBottom="12px";
-  card.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 8px">⚽ טבלת מלך השערים – TOP 10</p><p style="font-size:12px;color:var(--muted);margin:0">⏳ טוען...</p>`;
+  card.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 8px">⚽ טבלת מלך השערים – TOP 10</p><p style="font-size:12px;color:var(--muted);margin:0">טוען...</p>`;
   area.appendChild(card);
 
-  // נתונים סטטיים כגיבוי (מעודכן 29.6)
-  const staticScorers=[
-    ["ליאו מסי","ארגנטינה",5],["ויניסיוס גוניור","ברזיל",4],
-    ["קיליאן מבאפה","צרפת",4],["אירלינג הולאנד","נורווגיה",4],
-    ["אוסמן דמבלה","צרפת",4],["ישמאל סיברי","מרוקו",3],
-    ["דניז אונדב","גרמניה",3],["ג'ונתן דייוויד","קנדה",3],
-    ["יוהן מנזמבי","שוויץ",3],["מתאוס קונייה","ברזיל",3]
-  ];
+  try{
+    const res=await fetch("https://mondialproxy.wteashivuk.workers.dev/?type=scorers");
+    if(!res.ok) throw new Error();
+    const data=await res.json();
+    const scorers=(data.scorers||[]).slice(0,10);
 
-  function buildTable(scorers, isStatic=false){
     const medals=["🥇","🥈","🥉"];
     let html=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 8px">⚽ טבלת מלך השערים – TOP 10</p>
     <table style="width:100%;font-size:12px;border-collapse:collapse">
@@ -852,936 +840,23 @@ async function renderTopScorersTable(area){
         <th style="text-align:right;padding:3px 4px;color:var(--muted);font-weight:400">נבחרת</th>
         <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">⚽</th>
       </tr></thead><tbody>`;
-    scorers.forEach(([name,team,goals],i)=>{
-      html+=`<tr style="border-bottom:0.5px solid var(--border)">
+
+    scorers.forEach((s,i)=>{
+      const teamHeb=hebrewTeam(s.team?.name)||s.team?.name||"";
+      const isUserPick=state.user?.scorerBet&&state.user.scorerBet.includes(s.player?.lastName||"");
+      html+=`<tr style="border-bottom:0.5px solid var(--border);${isUserPick?"background:var(--chip)":""}">
         <td style="text-align:center;padding:7px 4px;font-size:${i<3?15:12}px">${i<3?medals[i]:i+1}</td>
-        <td style="padding:7px 4px;color:var(--text);font-weight:${i<3?600:400}">${name}</td>
-        <td style="padding:7px 4px;color:var(--muted)">${team}</td>
-        <td style="text-align:center;padding:7px 4px;font-weight:700;color:var(--accent);font-size:${i<3?15:13}px">${goals}</td>
+        <td style="padding:7px 4px;color:var(--text);font-weight:${i<3?600:400}">${s.player?.name||""}</td>
+        <td style="padding:7px 4px;color:var(--muted)">${teamHeb}</td>
+        <td style="text-align:center;padding:7px 4px;font-weight:700;color:var(--accent);font-size:${i<3?15:13}px">${s.goals}</td>
       </tr>`;
     });
-    html+=`</tbody></table><p style="font-size:10px;color:var(--muted);margin:6px 0 0">${isStatic?"⚠️ נתונים סטטיים – עדכון אחרון 29.6":"מתעדכן פעם ביום"}</p>`;
-    return html;
-  }
 
-  try{
-    sessionStorage.removeItem("scorers_cache");
-    sessionStorage.removeItem("scorers_date");
-    const res=await fetch("https://mondialproxy.wteashivuk.workers.dev/?type=scorers",{cache:"no-store"});
-    if(!res.ok) throw new Error();
-    const data=await res.json();
-    const scorers=(data.scorers||[]).slice(0,10).map(s=>[
-      hebrewPlayer(s.player?.name||""),
-      hebrewTeam(s.team?.name)||s.team?.name||"",
-      s.goals
-    ]);
-    if(!scorers.length) throw new Error();
-    card.innerHTML=buildTable(scorers,false);
+    html+=`</tbody></table><p style="font-size:10px;color:var(--muted);margin:6px 0 0;text-align:left">מתעדכן אוטומטית</p>`;
+    card.innerHTML=html;
   }catch(e){
-    card.innerHTML=buildTable(staticScorers,true);
+    card.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">⚽ טבלת מלך השערים</p><p style="font-size:12px;color:var(--muted);margin:0">לא ניתן לטעון כרגע</p>`;
   }
-}
-ir="rtl" lang="he">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>מונדיאל 2026 – ויסוצקי</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh}
-:root{--bg:#f0f7f0;--surface:#fff;--border:rgba(0,0,0,0.08);--text:#0d2b0d;--muted:#4a7a4a;--accent:#006633;--chip:#e0f0e0;--green:#006633;--red:#e53935;--gold:#F0B429;--silver:#B0BEC5;--bronze:#CD7F32}
-.dark{--bg:#071a07;--surface:#0d2b0d;--border:rgba(255,255,255,0.09);--text:#e0f0e0;--muted:#4a9a4a;--accent:#00aa55;--chip:#0d3b0d;--green:#00aa55;--red:#7a1a1a}
-button{cursor:pointer;font-family:inherit;direction:rtl}
-input{font-family:inherit;direction:rtl}
-.screen{min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
-.topbar{display:flex;align-items:center;padding:10px 16px 8px;background:var(--surface);border-bottom:0.5px solid var(--border);position:sticky;top:0;z-index:10;gap:8px}
-.topbar-title{flex:1;font-weight:700;font-size:15px;color:var(--text);text-align:center}
-.scroll-area{flex:1;overflow-y:auto;padding:12px 16px 20px}
-.top-nav{display:flex;background:var(--surface);border-bottom:2px solid var(--border);position:sticky;top:49px;z-index:9;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.top-nav::-webkit-scrollbar{display:none}
-.nav-btn{flex:0 0 auto;padding:8px 14px 6px;background:none;border:none;border-bottom:3px solid transparent;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);font-size:10px;font-weight:400;white-space:nowrap;cursor:pointer;transition:all .15s}
-.nav-btn.active{color:var(--accent);font-weight:700;border-bottom:3px solid var(--accent)}
-.nav-btn:hover{color:var(--text)}
-.nav-emoji{font-size:16px}
-.card{background:var(--surface);border-radius:14px;border:0.5px solid var(--border);padding:13px 15px;margin-bottom:10px}
-.chip{background:var(--chip);border:0.5px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted);font-weight:600;cursor:pointer}
-.chip.active{background:var(--accent);color:#fff;border-color:transparent}
-.btn{padding:13px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;width:100%;margin-top:6px}
-.btn:disabled{opacity:0.45}
-.input{width:100%;padding:11px 14px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg);font-size:15px;color:var(--text);outline:none;text-align:right}
-.error{color:var(--red);font-size:13px;text-align:center;margin-top:4px}
-.badge{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:700;color:#fff}
-.badge-green{background:var(--green)}
-.badge-red{background:var(--red)}
-.hidden{display:none!important}
-.loader{display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:28px;background:var(--bg)}
-.tab-bar{display:flex;background:var(--chip);border-radius:10px;padding:3px;margin:10px 16px 4px}
-.tab-btn{flex:1;padding:8px 0;border-radius:8px;border:none;background:transparent;color:var(--muted);font-weight:400;font-size:13px;transition:all .15s}
-.tab-btn.active{background:var(--surface);color:var(--text);font-weight:700}
-.match-teams{display:flex;align-items:center;gap:8px;margin:8px 0}
-.team-circle{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
-.bet-chips{display:flex;gap:6px}
-.bet-chip{flex:1;padding:6px 4px;border-radius:8px;border:0.5px solid var(--border);background:var(--chip);color:var(--muted);font-weight:700;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:1px;transition:all .13s}
-.bet-chip.sel{background:var(--accent);color:#fff;border:none}
-.bet-chip.disabled{opacity:.32}
-.bet-chip span:first-child{font-size:14px}
-</style>
-</head>
-<body>
-
-<div id="loader" class="loader">⚽</div>
-<div id="app" class="hidden"></div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot, updateDoc, deleteDoc, deleteField, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-// ── Firebase config ───────────────────────────────────────────────────────────
-const app = initializeApp({
-  apiKey: "AIzaSyDbCZnf9Z3fHGQug28AgNiFOUNb88Yr5lI",
-  authDomain: "w-world-cup-2026.firebaseapp.com",
-  projectId: "w-world-cup-2026",
-  storageBucket: "w-world-cup-2026.firebasestorage.app",
-  messagingSenderId: "210085372750",
-  appId: "1:210085372750:web:55ed59cbbde72f422db41f"
-});
-const db = getFirestore(app);
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-// הערה: סיסמת המנהל שמורה ב-Firebase בלבד (settings/admin)
-const DEFAULT_DEPARTMENTS = [
-  "מטה- תה","מטה- מש\"א","מטה- מזון","מטה- רכש",
-  "מטה- מערכות מידע","מטה- כספים","מטה- מנהלה","מטה- בינלאומית",
-  "חטיבת המכירות","מפעל- תפעול","מפעל- תפ\"י","מרלו\"ג- לוגיסטיקה"
-];
-
-// 4 יחידות מרכזות לדירוג
-const DEPT_GROUPS = {
-  "מטה": ["מטה- תה","מטה- מש\"א","מטה- מזון","מטה- רכש","מטה- מערכות מידע","מטה- כספים","מטה- מנהלה","מטה- בינלאומית"],
-  "מכירות": ["חטיבת המכירות"],
-  "מפעל": ["מפעל- תפעול","מפעל- תפ\"י"],
-  "לוגיסטיקה": ["מרלו\"ג- לוגיסטיקה"],
-};
-
-// helper – always read from state so admin changes take effect live
-function getDepts(){ return state.departments||DEFAULT_DEPARTMENTS; }
-const DEFAULT_SCORERS = ["קיליאן מבאפה (צרפת)","אירלינג הולאנד (נורבגיה)","ויניסיוס ג'וניור (ברזיל)","לאמין יאמאל (ספרד)","הארי קיין (אנגליה)","ג'וד בלינגהאם (אנגליה)","פיל פודן (אנגליה)","רודריגו (ברזיל)","מוחמד סאלח (מצרים)","ליאו מסי (ארגנטינה)","כריסטיאנו רונאלדו (פורטוגל)"];
-const GROUPS = {"א":["מקסיקו","דרום קוריאה","דרום אפריקה","צ'כיה"],"ב":["קנדה","שוויץ","קטאר","בוסניה"],"ג":["ברזיל","סקוטלנד","מרוקו","האיטי"],"ד":["ארצות הברית","אוסטרליה","פרגוואי","טורקיה"],"ה":["גרמניה","אקוודור","חוף השנהב","קורסאו"],"ו":["הולנד","יפן","תוניסיה","שבדיה"],"ז":["בלגיה","מצרים","איראן","ניו זילנד"],"ח":["ספרד","אורוגוואי","ערב הסעודית","כף ורדה"],"ט":["צרפת","סנגל","נורווגיה","עיראק"],"י":["ארגנטינה","אלג'יריה","אוסטריה","ירדן"],"יא":["פורטוגל","קולומביה","קונגו","אוזבקיסטן"],"יב":["אנגליה","קרואטיה","גאנה","פנמה"]};
-const ALL_TEAMS = Object.values(GROUPS).flat();
-const SCHEDULE = [
-  {id:"m0",home:"מקסיקו",away:"דרום אפריקה",date:"11 יוני",time:"22:00",group:"א"},
-  {id:"m1",home:"דרום קוריאה",away:"צ'כיה",date:"12 יוני",time:"05:00",group:"א"},
-  {id:"m2",home:"קנדה",away:"בוסניה",date:"12 יוני",time:"22:00",group:"ב"},
-  {id:"m3",home:"ארצות הברית",away:"פרגוואי",date:"13 יוני",time:"04:00",group:"ד"},
-  {id:"m4",home:"אוסטרליה",away:"טורקיה",date:"14 יוני",time:"07:00",group:"ד"},
-  {id:"m5",home:"קטאר",away:"שוויץ",date:"13 יוני",time:"22:00",group:"ב"},
-  {id:"m6",home:"ברזיל",away:"מרוקו",date:"14 יוני",time:"01:00",group:"ג"},
-  {id:"m7",home:"האיטי",away:"סקוטלנד",date:"14 יוני",time:"04:00",group:"ג"},
-  {id:"m8",home:"גרמניה",away:"קורסאו",date:"14 יוני",time:"20:00",group:"ה"},
-  {id:"m9",home:"הולנד",away:"יפן",date:"14 יוני",time:"23:00",group:"ו"},
-  {id:"m10",home:"חוף השנהב",away:"אקוודור",date:"15 יוני",time:"02:00",group:"ה"},
-  {id:"m11",home:"שבדיה",away:"תוניסיה",date:"15 יוני",time:"05:00",group:"ו"},
-  {id:"m12",home:"ספרד",away:"כף ורדה",date:"15 יוני",time:"19:00",group:"ח"},
-  {id:"m13",home:"בלגיה",away:"מצרים",date:"15 יוני",time:"22:00",group:"ז"},
-  {id:"m14",home:"ערב הסעודית",away:"אורוגוואי",date:"16 יוני",time:"01:00",group:"ח"},
-  {id:"m15",home:"איראן",away:"ניו זילנד",date:"16 יוני",time:"04:00",group:"ז"},
-  {id:"m16",home:"צרפת",away:"סנגל",date:"16 יוני",time:"22:00",group:"ט"},
-  {id:"m17",home:"עיראק",away:"נורווגיה",date:"17 יוני",time:"01:00",group:"ט"},
-  {id:"m18",home:"ארגנטינה",away:"אלג'יריה",date:"17 יוני",time:"04:00",group:"י"},
-  {id:"m19",home:"אוסטריה",away:"ירדן",date:"17 יוני",time:"07:00",group:"י"},
-  {id:"m20",home:"פורטוגל",away:"קונגו",date:"17 יוני",time:"20:00",group:"יא"},
-  {id:"m21",home:"אנגליה",away:"קרואטיה",date:"17 יוני",time:"23:00",group:"יב"},
-  {id:"m22",home:"גאנה",away:"פנמה",date:"18 יוני",time:"02:00",group:"יב"},
-  {id:"m23",home:"אוזבקיסטן",away:"קולומביה",date:"18 יוני",time:"05:00",group:"יא"},
-  {id:"m24",home:"צ'כיה",away:"דרום אפריקה",date:"18 יוני",time:"19:00",group:"א"},
-  {id:"m25",home:"שוויץ",away:"בוסניה",date:"18 יוני",time:"22:00",group:"ב"},
-  {id:"m26",home:"קנדה",away:"קטאר",date:"19 יוני",time:"01:00",group:"ב"},
-  {id:"m27",home:"מקסיקו",away:"דרום קוריאה",date:"19 יוני",time:"04:00",group:"א"},
-  {id:"m29",home:"ארצות הברית",away:"אוסטרליה",date:"19 יוני",time:"22:00",group:"ד"},
-  {id:"m30",home:"סקוטלנד",away:"מרוקו",date:"20 יוני",time:"01:00",group:"ג"},
-  {id:"m31",home:"ברזיל",away:"האיטי",date:"20 יוני",time:"03:30",group:"ג"},
-  {id:"m28",home:"טורקיה",away:"פרגוואי",date:"20 יוני",time:"06:00",group:"ד"},
-  {id:"m32",home:"הולנד",away:"שבדיה",date:"20 יוני",time:"20:00",group:"ו"},
-  {id:"m33",home:"גרמניה",away:"חוף השנהב",date:"20 יוני",time:"23:00",group:"ה"},
-  {id:"m34",home:"אקוודור",away:"קורסאו",date:"21 יוני",time:"03:00",group:"ה"},
-  {id:"m35",home:"תוניסיה",away:"יפן",date:"21 יוני",time:"07:00",group:"ו"},
-  {id:"m36",home:"ספרד",away:"ערב הסעודית",date:"21 יוני",time:"19:00",group:"ח"},
-  {id:"m37",home:"בלגיה",away:"איראן",date:"21 יוני",time:"22:00",group:"ז"},
-  {id:"m38",home:"אורוגוואי",away:"כף ורדה",date:"22 יוני",time:"01:00",group:"ח"},
-  {id:"m39",home:"ניו זילנד",away:"מצרים",date:"22 יוני",time:"04:00",group:"ז"},
-  {id:"m40",home:"ארגנטינה",away:"אוסטריה",date:"22 יוני",time:"20:00",group:"י"},
-  {id:"m41",home:"צרפת",away:"עיראק",date:"23 יוני",time:"00:00",group:"ט"},
-  {id:"m42",home:"נורווגיה",away:"סנגל",date:"23 יוני",time:"03:00",group:"ט"},
-  {id:"m43",home:"ירדן",away:"אלג'יריה",date:"23 יוני",time:"06:00",group:"י"},
-  {id:"m44",home:"פורטוגל",away:"אוזבקיסטן",date:"23 יוני",time:"20:00",group:"יא"},
-  {id:"m45",home:"אנגליה",away:"גאנה",date:"23 יוני",time:"23:00",group:"יב"},
-  {id:"m46",home:"פנמה",away:"קרואטיה",date:"24 יוני",time:"02:00",group:"יב"},
-  {id:"m47",home:"קולומביה",away:"קונגו",date:"24 יוני",time:"05:00",group:"יא"},
-  {id:"m48",home:"שוויץ",away:"קנדה",date:"24 יוני",time:"22:00",group:"ב"},
-  {id:"m49",home:"בוסניה",away:"קטאר",date:"24 יוני",time:"22:00",group:"ב"},
-  {id:"m50",home:"סקוטלנד",away:"ברזיל",date:"25 יוני",time:"01:00",group:"ג"},
-  {id:"m51",home:"מרוקו",away:"האיטי",date:"25 יוני",time:"01:00",group:"ג"},
-  {id:"m52",home:"צ'כיה",away:"מקסיקו",date:"25 יוני",time:"04:00",group:"א"},
-  {id:"m53",home:"דרום אפריקה",away:"דרום קוריאה",date:"25 יוני",time:"04:00",group:"א"},
-  {id:"m54",home:"אקוודור",away:"גרמניה",date:"25 יוני",time:"23:00",group:"ה"},
-  {id:"m55",home:"קורסאו",away:"חוף השנהב",date:"25 יוני",time:"23:00",group:"ה"},
-  {id:"m56",home:"יפן",away:"שבדיה",date:"26 יוני",time:"02:00",group:"ו"},
-  {id:"m57",home:"תוניסיה",away:"הולנד",date:"26 יוני",time:"02:00",group:"ו"},
-  {id:"m58",home:"טורקיה",away:"ארצות הברית",date:"26 יוני",time:"05:00",group:"ד"},
-  {id:"m59",home:"פרגוואי",away:"אוסטרליה",date:"26 יוני",time:"05:00",group:"ד"},
-  {id:"m60",home:"נורווגיה",away:"צרפת",date:"26 יוני",time:"22:00",group:"ט"},
-  {id:"m61",home:"סנגל",away:"עיראק",date:"26 יוני",time:"22:00",group:"ט"},
-  {id:"m63",home:"אורוגוואי",away:"ספרד",date:"27 יוני",time:"03:00",group:"ח"},
-  {id:"m62",home:"כף ורדה",away:"ערב הסעודית",date:"27 יוני",time:"03:00",group:"ח"},
-  {id:"m65",home:"ניו זילנד",away:"בלגיה",date:"27 יוני",time:"06:00",group:"ז"},
-  {id:"m64",home:"מצרים",away:"איראן",date:"27 יוני",time:"06:00",group:"ז"},
-  {id:"m66",home:"פנמה",away:"אנגליה",date:"28 יוני",time:"00:00",group:"יב"},
-  {id:"m67",home:"קרואטיה",away:"גאנה",date:"28 יוני",time:"00:00",group:"יב"},
-  {id:"m68",home:"קולומביה",away:"פורטוגל",date:"28 יוני",time:"02:30",group:"יא"},
-  {id:"m69",home:"קונגו",away:"אוזבקיסטן",date:"28 יוני",time:"02:30",group:"יא"},
-  {id:"m71",home:"ירדן",away:"ארגנטינה",date:"28 יוני",time:"05:00",group:"י"},
-  {id:"m70",home:"אלג'יריה",away:"אוסטריה",date:"28 יוני",time:"05:00",group:"י"},
-];
-const KNOCKOUT_STAGES=[{label:"שלב 32 האחרונות",date:"28 יוני ואילך"},{label:"שמינית גמר",date:"5 יולי"},{label:"רבע גמר",date:"9 יולי"},{label:"חצי גמר",date:"14–15 יולי"},{label:"גמר",date:"19 יולי · MetLife Stadium, NJ"}];
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const WISSOTZKY_LOGO="data:image/png;base64,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";
-function hashPwd(p){let h=0;for(let i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h|=0;}return h.toString(36);}
-function teamColor(name){const p=["#1a6fa8","#b83232","#2e8b57","#8b5e2e","#6a4fa8","#b87a1a","#2e7a8b","#a83268","#3a7a3a","#8b3a3a"];const i=(name.charCodeAt(0)+(name.charCodeAt(1)||0))%p.length;return p[i];}
-
-// נעילה אוטומטית לפי שעת קיקאוף (שעון ישראל)
-function isMatchLocked(m){
-  // שחרור זמני למשתמש ספציפי ע"י מנהל
-  if(state.user&&state.user.tempUnlock&&!m.result) return false;
-  // נעול ידנית ע"י מנהל
-  if(m.locked||m.result) return true;
-  // תאריך/שעה לא ידועים
-  if(!m.date||!m.time||m.date==="טרם נקבע"||m.time==="—") return false;
-  try{
-    // מיפוי חודשים עבריים לאנגלית
-    const months={"ינואר":1,"פברואר":2,"מרץ":3,"אפריל":4,"מאי":5,"יוני":6,"יולי":7,"אוגוסט":8,"ספטמבר":9,"אוקטובר":10,"נובמבר":11,"דצמבר":12};
-    const parts=m.date.split(" ");
-    const day=parseInt(parts[0]);
-    const month=months[parts[1]];
-    const year=2026;
-    const [hh,mm]=m.time.split(":").map(Number);
-    // בונים תאריך ב-UTC: שעון ישראל הוא UTC+3 בקיץ
-    // נשתמש ב-Date ישירות עם שעון ישראל
-    const kickoffStr=`${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}T${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00+03:00`;
-    const kickoff=new Date(kickoffStr);
-    return Date.now()>=kickoff.getTime();
-  }catch(e){return false;}
-}
-function qs(sel){return document.querySelector(sel);}
-function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html)e.innerHTML=html;return e;}
-function shortName(n){return n.length>6?n.slice(0,6)+"…":n;}
-
-// ── State ─────────────────────────────────────────────────────────────────────
-let state={user:null,screen:"matches",dark:false,matchTab:"groups",activeGroup:"א",matches:[...SCHEDULE],scorers:[...DEFAULT_SCORERS],departments:[...DEFAULT_DEPARTMENTS],prizes:{first:"",second:"",third:"",dept:""},adminTab:"results",adminGroup:"א",userFilter:"all",leaderTab:"personal",allUsers:[],liveUsers:[]};
-
-// ── Firestore ─────────────────────────────────────────────────────────────────
-async function fsGetUser(name){
-  const d=await getDoc(doc(db,"users",name.toLowerCase()));
-  return d.exists()?d.data():null;
-}
-async function fsSaveUser(data){
-  await setDoc(doc(db,"users",data.name.toLowerCase()),data,{merge:true});
-}
-async function fsGetSettings(){
-  const d=await getDoc(doc(db,"settings","main"));
-  return d.exists()?d.data():{};
-}
-async function fsSaveSettings(data){
-  await setDoc(doc(db,"settings","main"),data,{merge:true});
-}
-async function fsGetAllUsers(){
-  const snap=await getDocs(collection(db,"users"));
-  return snap.docs.map(d=>d.data());
-}
-async function fsDeleteUser(name){
-  await deleteDoc(doc(db,"users",name.toLowerCase()));
-}
-function fsListenUsers(cb){
-  return onSnapshot(collection(db,"users"),snap=>{
-    cb(snap.docs.map(d=>d.data()));
-  });
-}
-function fsListenSettings(cb){
-  return onSnapshot(doc(db,"settings","main"),snap=>{
-    if(snap.exists())cb(snap.data());
-  });
-}
-
-// ── Auth ──────────────────────────────────────────────────────────────────────
-async function login(name,pwd,dept,pwd2,isNew){
-  const existing=await fsGetUser(name);
-  if(existing){
-    if(existing.pwdHash!==hashPwd(pwd)){return"סיסמה שגויה";}
-    state.user={...existing};
-    return null;
-  } else {
-    if(!dept){return"יש לבחור מחלקה";}
-    if(pwd.length<4){return"סיסמה חייבת להכיל לפחות 4 תווים";}
-    if(pwd!==pwd2){return"הסיסמאות אינן תואמות";}
-    const profile={name,dept,pwdHash:hashPwd(pwd),bets:{},scorerBet:null,winnerBet:null,points:0};
-    await fsSaveUser(profile);
-    state.user={...profile};
-    return null;
-  }
-}
-function logout(){
-  state.user=null;
-  sessionStorage.removeItem("mundial_user");
-  render();
-}
-
-// ── Bet saving ────────────────────────────────────────────────────────────────
-async function saveBet(matchId,val){
-  if(!state.user)return;
-  // בדיקת נעילה – מניעה כפולה גם בצד הלוגיקה
-  const match=state.matches.find(m=>m.id===matchId);
-  if(!match||isMatchLocked(match)){console.warn("ניסיון ניחוש על משחק נעול:",matchId);return;}
-  state.user.bets={...state.user.bets,[matchId]:val};
-  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
-  state.user.points=pts;
-  const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
-  if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:state.user.bets,points:pts};
-  else state.liveUsers.push({...state.user,points:pts});
-  await fsSaveUser({...state.user,points:pts});
-}
-
-async function saveScorerBet(player){
-  if(!state.user)return;
-  state.user.scorerBet=player;
-  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
-  state.user.points=pts;
-  const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
-  if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],scorerBet:player,points:pts};
-  await fsSaveUser({...state.user,points:pts});
-}
-
-async function saveWinnerBet(team){
-  if(!state.user)return;
-  state.user.winnerBet=team;
-  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
-  state.user.points=pts;
-  const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
-  if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],winnerBet:team,points:pts};
-  await fsSaveUser({...state.user,points:pts});
-}
-
-// ── Compute points ────────────────────────────────────────────────────────────
-function calcPoints(user,matches,scorers,prizes,winnerResult){
-  let pts=0;
-  matches.forEach(m=>{
-    if(!user.bets||!user.bets[m.id]) return;
-    pts+=1; // נקודה על כל ניחוש (ללא קשר לתוצאה)
-    if(m.result&&user.bets[m.id]===m.result) pts+=5; // +5 על ניחוש נכון
-  });
-  if(user.scorerBet&&scorers.topScorer&&user.scorerBet===scorers.topScorer) pts+=8; // +8 מלך שערים
-  if(user.winnerBet&&winnerResult&&user.winnerBet===winnerResult) pts+=10; // +10 אלופת המונדיאל
-  return pts;
-}
-
-// חישוב וחידוש נקודות לכל המשתמשים ב-Firebase
-async function recalcAllPoints(){
-  const allUsers=await fsGetAllUsers();
-  const topScorer=state.prizes.topScorer||null;
-  const winnerResult=state.prizes.winner||null;
-  const updates=allUsers.map(async u=>{
-    const pts=calcPoints(u,state.matches,{topScorer},state.prizes,winnerResult);
-    if(u.points!==pts){
-      await fsSaveUser({...u,points:pts});
-    }
-  });
-  await Promise.all(updates);
-  console.log("✅ נקודות עודכנו לכל המשתמשים");
-}
-
-// ── Render engine ─────────────────────────────────────────────────────────────
-function render(){
-  const app=qs("#app");
-  app.innerHTML="";
-  app.classList.remove("hidden");
-  qs("#loader").classList.add("hidden");
-  document.body.className=state.dark?"dark":"";
-
-  if(!state.user){renderLogin(app);return;}
-  const scr=el("div","screen");
-  renderScreen(scr);
-  app.appendChild(scr);
-}
-
-function renderLogin(app){
-  // הגדר theme CSS vars ישירות על ה-wrap
-  const dark=state.dark;
-  const themeVars=dark?
-    "--bg:#0e1118;--surface:#181c27;--border:rgba(255,255,255,0.09);--text:#eef0f8;--muted:#7b7f96;--accent:#4f7eff;--chip:#22273a;--green:#1a7a4a;--red:#7a1a1a":
-    "--bg:#f0f7f0;--surface:#fff;--border:rgba(0,0,0,0.08);--text:#0d2b0d;--muted:#4a7a4a;--accent:#006633;--chip:#e0f0e0;--green:#006633;--red:#e53935";
-  const wrap=el("div");
-  wrap.style.cssText=`min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);padding:24px;font-family:system-ui,-apple-system,sans-serif;direction:rtl;${themeVars}`;
-
-  wrap.innerHTML+=`
-  <div style="width:100%;max-width:400px">
-    <div style="text-align:center;margin-bottom:28px">
-      <img src="${WISSOTZKY_LOGO}" alt="Wissotzky" style="height:80px;object-fit:contain;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto;border-radius:0;background:none"/>
-      <p style="font-size:24px;font-weight:700;color:var(--text);margin:0 0 4px;font-family:system-ui,-apple-system,sans-serif">מונדיאל 2026</p>
-      <p style="color:var(--muted);font-size:13px;margin:0 0 4px;line-height:1.6">מי תנצח במשחקים? מי תהיה אלופת המונדיאל? מי יוכתר מלך השערים?</p>
-      <p style="color:var(--muted);font-size:12px;margin:0;line-height:1.6">חושבים שאתם יודעים את התשובות? כנסו לדפי הניחושים המופיעים בסרגל העליון, נחשו ותתחילו לצבור נקודות</p>
-    </div>
-    <div style="background:var(--surface);border-radius:20px;border:0.5px solid var(--border);padding:22px 20px;display:flex;flex-direction:column;gap:14px;font-family:system-ui,-apple-system,sans-serif">
-      <div>
-        <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">שם מלא</label>
-        <input id="ln-name" class="input" placeholder="ישראל ישראלי"/>
-      </div>
-      <div id="ln-status" style="display:none"></div>
-      <div id="ln-dept-wrap" style="display:none">
-        <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">מחלקה</label>
-        <div id="ln-dept-chips" style="display:flex;flex-wrap:wrap;gap:7px"></div>
-      </div>
-      <div id="ln-pwd-wrap" style="display:none">
-        <label id="ln-pwd-label" style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">סיסמה</label>
-        <input id="ln-pwd" class="input" type="password" placeholder="כאן מקלידים סיסמה" style="text-align:right"/>
-      </div>
-      <div id="ln-pwd2-wrap" style="display:none">
-        <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">אימות סיסמה</label>
-        <input id="ln-pwd2" class="input" type="password" placeholder="כאן מקלידים שוב לאימות" style="text-align:right"/>
-      </div>
-      <div id="ln-error" class="error" style="display:none"></div>
-      <button id="ln-submit" class="btn" disabled>המשך ←</button>
-    </div>
-    <button id="admin-entry-btn" style="display:block;width:100%;margin-top:10px;padding:10px;border-radius:10px;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer">⚙️ כניסה למנהל</button>
-    <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px">ניחושים לצורך כיף בלבד · ללא כסף אמיתי</p>
-  </div>`;
-  app.appendChild(wrap);
-  // Wire admin button (now inside the form, not fixed)
-  setTimeout(()=>{
-    const adminEntryBtn=qs("#admin-entry-btn");
-    if(adminEntryBtn) adminEntryBtn.onclick=()=>renderAdminLoginOverlay();
-  },0);
-
-  let isNew=null, selDept="";
-  const nameIn=()=>qs("#ln-name");
-  const pwdIn=()=>qs("#ln-pwd");
-  const pwd2In=()=>qs("#ln-pwd2");
-  const deptChips=()=>qs("#ln-dept-chips");
-  const submitBtn=()=>qs("#ln-submit");
-  const statusDiv=()=>qs("#ln-status");
-  const errDiv=()=>qs("#ln-error");
-
-  // Dept chips
-  setTimeout(()=>{
-    getDepts().forEach(d=>{
-      const b=el("button","chip");b.textContent=d;
-      b.onclick=()=>{selDept=d;deptChips().querySelectorAll("button").forEach(x=>x.classList.remove("active"));b.classList.add("active");checkReady();};
-      deptChips().appendChild(b);
-    });
-
-    nameIn().onblur=async()=>{
-      const n=nameIn().value.trim();
-      if(!n)return;
-      const existing=await fsGetUser(n);
-      isNew=!existing;
-      statusDiv().style.display="flex";
-      statusDiv().style.cssText="display:flex;align-items:center;gap:8px;background:var(--chip);border-radius:10px;padding:8px 12px";
-      statusDiv().innerHTML=isNew?`<span>✨</span><p style="margin:0;font-size:13px;color:var(--text)">משתמש חדש! בחר מחלקה וצור סיסמה.</p>`:`<span>👋</span><p style="margin:0;font-size:13px;color:var(--text)">ברוך שובך! הזן את הסיסמה שלך.</p>`;
-      if(existing){selDept=existing.dept;}
-      qs("#ln-dept-wrap").style.display=isNew?"block":"none";
-      qs("#ln-pwd-wrap").style.display="block";
-      qs("#ln-pwd-label").textContent=isNew?"סיסמה חדשה":"סיסמה";
-      qs("#ln-pwd2-wrap").style.display=isNew?"block":"none";
-      submitBtn().textContent=isNew?"צור חשבון ←":"כניסה ←";
-      checkReady();
-    };
-
-    function checkReady(){
-      const n=nameIn().value.trim();
-      const p=pwdIn()?pwdIn().value:"";
-      const ok=n&&isNew!==null&&p&&(isNew?selDept&&pwd2In()&&pwd2In().value:true);
-      if(submitBtn())submitBtn().disabled=!ok;
-    }
-    if(pwdIn())pwdIn().oninput=checkReady;
-    if(pwd2In())pwd2In().oninput=checkReady;
-
-    submitBtn().onclick=async()=>{
-      errDiv().style.display="none";
-      submitBtn().disabled=true;submitBtn().textContent="...";
-      const err=await login(nameIn().value.trim(),pwdIn().value,selDept,pwd2In()?pwd2In().value:"",isNew);
-      if(err){
-        errDiv().textContent=err;errDiv().style.display="block";
-        submitBtn().disabled=false;submitBtn().textContent=isNew?"צור חשבון ←":"כניסה ←";
-      } else {
-        sessionStorage.setItem("mundial_user",state.user.name.toLowerCase());
-        render();
-      }
-    };
-  },0);
-}
-
-function renderAdminLoginOverlay(){
-  const overlay=el("div");
-  overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px";
-  overlay.innerHTML=`<div style="background:var(--surface);border-radius:16px;border:0.5px solid var(--border);padding:24px 22px;width:100%;max-width:340px">
-    <p style="font-size:20px;font-weight:800;color:var(--text);margin:0 0 16px;text-align:center">⚙️ ממשק ניהול</p>
-    <input id="adm-pwd" class="input" type="password" placeholder="סיסמת מנהל" style="text-align:right;margin-bottom:10px"/>
-    <div id="adm-err" class="error" style="display:none;margin-bottom:8px"></div>
-    <button id="adm-ok" class="btn">כניסה</button>
-    <button id="adm-cancel" class="btn" style="background:transparent;color:var(--muted);border:0.5px solid var(--border);margin-top:8px">ביטול</button>
-  </div>`;
-  document.body.appendChild(overlay);
-  qs("#adm-cancel").onclick=()=>overlay.remove();
-  qs("#adm-ok").onclick=async()=>{
-    const entered=qs("#adm-pwd").value;
-    qs("#adm-ok").textContent="...";qs("#adm-ok").disabled=true;
-    try{
-      const d=await getDoc(doc(db,"settings","admin"));
-      const stored=d.exists()?d.data().password:null;
-      if(stored && entered===stored){overlay.remove();renderAdmin();}
-      else{qs("#adm-err").textContent="סיסמה שגויה";qs("#adm-err").style.display="block";qs("#adm-ok").textContent="כניסה";qs("#adm-ok").disabled=false;}
-    }catch(e){
-      qs("#adm-err").textContent="שגיאת חיבור, נסה שנית";qs("#adm-err").style.display="block";qs("#adm-ok").textContent="כניסה";qs("#adm-ok").disabled=false;
-    }
-  };
-}
-
-function renderScreen(scr){
-  // TopBar
-  const tb=el("div","topbar");
-  const logoImg=el("img");logoImg.src=WISSOTZKY_LOGO;logoImg.style.cssText="height:34px;object-fit:contain;flex-shrink:0;border-radius:0;background:none";
-  tb.appendChild(logoImg);
-  const title=el("span","topbar-title");title.textContent=screenTitle();tb.appendChild(title);
-  const darkBtn=el("button");
-  darkBtn.style.cssText="background:none;border:0.5px solid var(--border);border-radius:20px;padding:4px 10px;color:var(--muted);font-size:14px;flex-shrink:0";
-  darkBtn.textContent=state.dark?"☀️":"🌙";
-  darkBtn.onclick=()=>{state.dark=!state.dark;render();};
-  tb.appendChild(darkBtn);
-  scr.appendChild(tb);
-
-  // TopNav – סרגל ניווט עליון
-  const nav=el("div","top-nav");
-  [["matches","⚽","משחקים"],["scorer","👟","מלך השערים"],["winner","🌍","אלופת המונדיאל"],["leaderboard","🏆","דירוג"],["prizes","🎁","פרסים"],["profile","👤","פרופיל"]].forEach(([id,emoji,label])=>{
-    const b=el("button","nav-btn"+(state.screen===id?" active":""));
-    b.innerHTML=`<span class="nav-emoji">${emoji}</span><span>${label}</span>`;
-    b.onclick=()=>{state.screen=id;render();};
-    nav.appendChild(b);
-  });
-  scr.appendChild(nav);
-
-  // Content
-  const area=el("div","scroll-area");
-  switch(state.screen){
-    case"matches":renderMatches(area);break;
-    case"scorer":renderScorer(area);break;
-    case"winner":renderWinner(area);break;
-    case"leaderboard":renderLeaderboard(area);break;
-    case"prizes":renderPrizes(area);break;
-    case"profile":renderProfile(area);break;
-  }
-  scr.appendChild(area);
-}
-
-function screenTitle(){
-  return{matches:"⚽ מונדיאל 2026",scorer:"👟 מלך השערים",winner:"🌍 אלופת המונדיאל",leaderboard:"🏆 מי מוביל בטבלת הניחושים?",prizes:"🎁 פרסים",profile:"הפרופיל שלי"}[state.screen]||"";
-}
-
-// ── Matches screen ────────────────────────────────────────────────────────────
-function renderMatches(area){
-  area.innerHTML="";
-
-  // 2 לשוניות בלבד: שלב בתים / שלב נוקאאוט
-  const mainTabs=el("div","tab-bar");mainTabs.style.margin="0 0 10px";
-  [["groups","⚽ שלב הבתים"],["knockout","🏆 שלב נוקאאוט"]].forEach(([id,label])=>{
-    const b=el("button","tab-btn"+(state.matchTab===id?" active":""));
-    b.textContent=label;
-    b.onclick=()=>{state.matchTab=id;renderMatches(area);};
-    mainTabs.appendChild(b);
-  });
-  area.appendChild(mainTabs);
-
-  if(state.matchTab==="knockout"){
-    renderKnockout(area);return;
-  }
-
-  // באנר נעילה
-  const banner=el("div");
-  banner.style.cssText="background:var(--chip);border-radius:10px;padding:9px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px";
-  banner.innerHTML=`<span style="font-size:16px;flex-shrink:0">⏰</span><p style="margin:0;font-size:12px;color:var(--muted);line-height:1.5">ניתן לנחש עד תחילת המשחק. עם פתיחת המשחק מערכת הניחושים תנעל ולא ניתן יהיה לשנות אותם.</p>`;
-  area.appendChild(banner);
-
-  // כל הבתים אחד מתחת לשני
-  Object.keys(GROUPS).forEach(g=>{
-    // כותרת בית
-    const groupTitle=el("div");
-    groupTitle.style.cssText="display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px";
-    groupTitle.innerHTML=`<span style="font-weight:700;font-size:14px;color:var(--text)">בית ${g}</span>`;
-    area.appendChild(groupTitle);
-
-    // טבלת בית (אם יש תוצאות)
-    const standingsCard=renderGroupStandings(g);
-    if(standingsCard)area.appendChild(standingsCard);
-
-    // משחקי הבית
-    const groupMatches=state.matches.filter(m=>m.group===g);
-    groupMatches.forEach(m=>area.appendChild(matchCard(m)));
-  });
-}
-
-function renderGroupStandings(group){
-  const teams=GROUPS[group];
-  if(!teams)return null;
-  const groupMatches=state.matches.filter(m=>m.group===group&&m.result);
-  if(!groupMatches.length)return null; // אין תוצאות עדיין
-
-  // חשב סטטיסטיקות
-  const stats={};
-  teams.forEach(t=>{stats[t]={p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0};});
-
-  // קבל שערים מה-API (אם קיים) – אחרת רק נ/ת/ה לפי תוצאה
-  groupMatches.forEach(m=>{
-    const hs=stats[m.home], as=stats[m.away];
-    if(!hs||!as)return;
-    hs.p++; as.p++;
-    if(m.result==="2"){hs.w++;hs.pts+=3;as.l++;}
-    else if(m.result==="1"){as.w++;as.pts+=3;hs.l++;}
-    else{hs.d++;as.d++;hs.pts++;as.pts++;}
-  });
-
-  const sorted=teams.slice().sort((a,b)=>{
-    const sa=stats[a],sb=stats[b];
-    if(sb.pts!==sa.pts)return sb.pts-sa.pts;
-    return (sb.gf-sb.ga)-(sa.gf-sa.ga);
-  });
-
-  const card=el("div","card");
-  card.style.marginBottom="10px";
-  let html=`<p style="font-weight:700;font-size:13px;color:var(--text);margin:0 0 8px">טבלת בית ${group}</p>
-  <table style="width:100%;font-size:12px;border-collapse:collapse">
-    <thead>
-      <tr style="border-bottom:0.5px solid var(--border)">
-        <th style="text-align:right;padding:3px 4px;color:var(--muted);font-weight:400">#</th>
-        <th style="text-align:right;padding:3px 4px;color:var(--muted);font-weight:400">נבחרת</th>
-        <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">מ</th>
-        <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">נ</th>
-        <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">ת</th>
-        <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">ה</th>
-        <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">נק</th>
-      </tr>
-    </thead>
-    <tbody>`;
-
-  sorted.forEach((t,i)=>{
-    const s=stats[t];
-    html+=`<tr style="border-bottom:0.5px solid var(--border)">
-      <td style="padding:6px 4px;text-align:center;color:var(--muted);font-size:11px">${i+1}</td>
-      <td style="padding:6px 4px;color:var(--text)">${t}</td>
-      <td style="text-align:center;padding:6px 4px;color:var(--muted)">${s.p}</td>
-      <td style="text-align:center;padding:6px 4px;color:var(--green);font-weight:${s.w?600:400}">${s.w}</td>
-      <td style="text-align:center;padding:6px 4px;color:var(--muted)">${s.d}</td>
-      <td style="text-align:center;padding:6px 4px;color:${s.l?"var(--red)":"var(--muted)"};font-weight:${s.l?600:400}">${s.l}</td>
-      <td style="text-align:center;padding:6px 4px;font-weight:700;color:var(--accent)">${s.pts}</td>
-    </tr>`;
-  });
-
-  html+=`</tbody></table>
-  <p style="font-size:10px;color:var(--muted);margin:6px 0 0;text-align:right">מ=משחקים · נ=נצחון · ת=תיקו · ה=הפסד · נק=נקודות</p>`;
-  card.innerHTML=html;
-  return card;
-}
-
-function matchCard(m){
-  const locked=isMatchLocked(m);
-  const autoLocked=locked&&!m.locked&&!m.result;
-  const userBet=state.user.bets&&state.user.bets[m.id];
-  const betResult=userBet&&m.result?(userBet===m.result?"win":"loss"):null;
-  const card=el("div","card");
-  let headerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <span style="font-size:11px;color:var(--muted)">בית ${m.group} · ${m.date} · ${m.time}</span>`;
-  if(betResult==="win")headerHTML+=`<span class="badge badge-green">+5 ✓</span>`;
-  else if(betResult==="loss")headerHTML+=`<span class="badge badge-red">0</span>`;
-  else if(autoLocked)headerHTML+=`<span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 7px">⏰ מתחיל</span>`;
-  else if(locked&&!m.result)headerHTML+=`<span style="font-size:11px;color:var(--muted)">🔒</span>`;
-  headerHTML+="</div>";
-
-  const homeColor=teamColor(m.home),awayColor=teamColor(m.away);
-  headerHTML+=`<div class="match-teams">
-    <div class="team-circle" style="background:${homeColor}">${m.home.slice(0,2)}</div>
-    <span style="font-weight:600;font-size:13px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.home}</span>
-    <span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 6px;flex-shrink:0">נ׳</span>
-    <span style="font-weight:600;font-size:13px;color:var(--text);flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.away}</span>
-    <div class="team-circle" style="background:${awayColor}">${m.away.slice(0,2)}</div>
-  </div>`;
-  card.innerHTML=headerHTML;
-
-  // Bet chips – לחיצה חוזרת מבטלת
-  const chipsDiv=el("div","bet-chips");
-  [[2,m.home],[`X`,"תיקו"],[1,m.away]].forEach(([v,label])=>{
-    const isSelected=userBet===String(v);
-    const chipClass="bet-chip"+(isSelected?" sel":"")+(locked&&!isSelected?" disabled":"")+(locked&&isSelected?" sel":"");
-    const b=el("button",chipClass);
-    b.style.opacity=locked&&!isSelected?"0.32":"1";
-    b.innerHTML=`<span>${v}</span><span style="font-size:9px">${shortName(String(label))}</span>`;
-    if(!locked)b.onclick=async()=>{
-      // בדיקה כפולה – אולי המשחק התחיל מאז שנטען הדף
-      if(isMatchLocked(m)){renderMatchesRefresh();return;}
-      const newVal=isSelected?null:String(v);
-      const pts_before=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
-      if(newVal===null){
-        delete state.user.bets[m.id];
-        const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
-        state.user.points=pts;
-        const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
-        if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:{...state.user.bets},points:pts};
-        await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{
-          [`bets.${m.id}`]: deleteField(),
-          points: pts
-        });
-      } else {
-        state.user.bets[m.id]=newVal;
-        const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
-        state.user.points=pts;
-        const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
-        if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:{...state.user.bets},points:pts};
-        await fsSaveUser({...state.user,points:pts});
-      }
-      renderMatchesRefresh();
-    };
-    chipsDiv.appendChild(b);
-  });
-  card.appendChild(chipsDiv);
-
-  if(userBet&&!m.result){
-    const p=el("p");p.style.cssText="font-size:11px;color:var(--accent);text-align:center;font-weight:600;margin-top:6px";
-    p.textContent="✓ ניחשת: "+(userBet==="2"?m.home:userBet==="1"?m.away:"תיקו");
-    card.appendChild(p);
-  }
-  return card;
-}
-
-function renderMatchesRefresh(){
-  const area=qs(".scroll-area");if(!area)return;
-  renderMatches(area);
-}
-
-// משחקי נוקאאוט ידועים – מוזן ידנית ומתעדכן תוצאות מה-API
-const KNOCKOUT_MATCHES = [
-  // שלב 32 האחרונות
-  {id:"ko73",stage:"LAST_16",home:"קנדה",away:"דרום אפריקה",date:"28 יוני",time:"22:00",city:"לוס אנג'לס"},
-  {id:"ko76",stage:"LAST_16",home:"ברזיל",away:"יפן",date:"29 יוני",time:"20:00",city:"מונטריי"},
-  {id:"ko74",stage:"LAST_16",home:"גרמניה",away:"פרגוואי",date:"29 יוני",time:"23:30",city:"יוסטון"},
-  {id:"ko75",stage:"LAST_16",home:"הולנד",away:"מרוקו",date:"30 יוני",time:"04:00",city:"בוסטון"},
-  {id:"ko78",stage:"LAST_16",home:"חוף השנהב",away:"נורווגיה",date:"30 יוני",time:"20:00",city:"ניו ג'רזי"},
-  {id:"ko77",stage:"LAST_16",home:"צרפת",away:"שבדיה",date:"1 יולי",time:"00:00",city:"דאלאס"},
-  {id:"ko79",stage:"LAST_16",home:"מקסיקו",away:null,date:"1 יולי",time:"04:00",city:"מקסיקו סיטי"},
-  {id:"ko80",stage:"LAST_16",home:null,away:null,date:"1 יולי",time:"19:00",city:"אטלנטה"},
-  {id:"ko82",stage:"LAST_16",home:"בלגיה",away:null,date:"1 יולי",time:"23:00",city:"סן פרנסיסקו"},
-  {id:"ko81",stage:"LAST_16",home:"ארצות הברית",away:"בוסניה",date:"2 יולי",time:"03:00",city:"סיאטל"},
-  {id:"ko84",stage:"LAST_16",home:"ספרד",away:null,date:"2 יולי",time:"22:00",city:"טורונטו"},
-  {id:"ko83",stage:"LAST_16",home:null,away:null,date:"3 יולי",time:"02:00",city:"לוס אנג'לס"},
-  {id:"ko85",stage:"LAST_16",home:"שוויץ",away:null,date:"3 יולי",time:"06:00",city:"ונקובר"},
-  {id:"ko86",stage:"LAST_16",home:"אוסטרליה",away:"מצרים",date:"3 יולי",time:"21:00",city:"דאלאס"},
-  {id:"ko88",stage:"LAST_16",home:"ארגנטינה",away:"כף ורדה",date:"4 יולי",time:"01:00",city:"קנזס סיטי"},
-  {id:"ko87",stage:"LAST_16",home:null,away:null,date:"4 יולי",time:"04:30",city:"מיאמי"},
-  // שלבים הבאים – ייוספו אוטומטית
-];
-
-async function fetchKnockoutMatches(){
-  // החזר את הרשימה הידועה – תוצאות יגיעו מה-API
-  return KNOCKOUT_MATCHES;
-}
-
-async function renderKnockout(area){
-  const matches=await fetchKnockoutMatches();
-  const stages={
-    "LAST_16":"שלב 32 האחרונות",
-    "QUARTER_FINALS":"רבע גמר",
-    "SEMI_FINALS":"חצי גמר",
-    "THIRD_PLACE":"🥉 משחק מקום שלישי",
-    "FINAL":"🏆 הגמר"
-  };
-
-  const byStage={};
-  matches.forEach(m=>{
-    if(!byStage[m.stage])byStage[m.stage]=[];
-    byStage[m.stage].push(m);
-  });
-
-  Object.entries(stages).forEach(([stageKey,stageLabel])=>{
-    const stageMatches=byStage[stageKey];
-    if(!stageMatches||!stageMatches.length)return;
-
-    const title=el("p");
-    title.style.cssText="font-weight:700;font-size:14px;color:var(--text);margin:14px 0 6px;padding-bottom:4px;border-bottom:0.5px solid var(--border)";
-    title.textContent=stageLabel;
-    area.appendChild(title);
-
-    stageMatches.forEach(m=>{
-      const homeHeb=m.home||null;
-      const awayHeb=m.away||null;
-      const months={"יוני":6,"יולי":7};
-      const parts=m.date.split(" ");
-      const day=parseInt(parts[0]),month=months[parts[1]];
-      const [hh,mm]=m.time.split(":").map(Number);
-      const kickoff=new Date(`2026-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}T${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00+03:00`);
-      const isLocked=kickoff<=new Date()||!!m.result;
-      const userBet=state.user?.bets?.[m.id];
-      const result=m.result||null;
-      const betResult=userBet&&result?(userBet===result?"win":"loss"):null;
-
-      const card=el("div","card");
-      let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:11px;color:var(--muted)">${m.date} · ${m.time}${m.city?" · "+m.city:""}</span>`;
-      if(betResult==="win")h+=`<span class="badge badge-green">+5 ✓</span>`;
-      else if(betResult==="loss")h+=`<span class="badge badge-red">0</span>`;
-      else if(isLocked&&!result)h+=`<span style="font-size:11px;color:var(--muted)">🔒</span>`;
-      h+=`</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span style="font-weight:600;font-size:13px;color:var(--text);flex:1">${homeHeb||"⏳ טרם נקבע"}</span>
-        <span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 6px;flex-shrink:0">נ׳</span>
-        <span style="font-weight:600;font-size:13px;color:var(--text);flex:1;text-align:left">${awayHeb||"⏳ טרם נקבע"}</span>
-      </div>`;
-      card.innerHTML=h;
-
-      if(homeHeb&&awayHeb&&(!isLocked||userBet)){
-        const chipsDiv=el("div","bet-chips");
-        [[2,homeHeb],["X","תיקו"],[1,awayHeb]].forEach(([v,label])=>{
-          const isSelected=userBet===String(v);
-          const b=el("button","bet-chip"+(isSelected?" sel":"")+(isLocked&&!isSelected?" disabled":""));
-          b.style.opacity=isLocked&&!isSelected?"0.32":"1";
-          b.innerHTML=`<span>${v}</span><span style="font-size:9px">${String(label).length>6?String(label).slice(0,6)+"…":String(label)}</span>`;
-          if(!isLocked)b.onclick=async()=>{
-            const newVal=isSelected?null:String(v);
-            if(newVal===null){
-              delete state.user.bets[m.id];
-              const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
-              state.user.points=pts;
-              await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{["bets."+m.id]:deleteField(),points:pts});
-            } else {
-              state.user.bets[m.id]=newVal;
-              await saveBet(m.id,newVal);
-            }
-            renderMatchesRefresh();
-          };
-          chipsDiv.appendChild(b);
-        });
-        card.appendChild(chipsDiv);
-      } else if(!homeHeb||!awayHeb){
-        const p=el("p");
-        p.style.cssText="font-size:11px;color:var(--muted);text-align:center;margin:4px 0 0";
-        p.textContent="הניחוש ייפתח ברגע שהנבחרות יתבררו";
-        card.appendChild(p);
-      }
-      area.appendChild(card);
-    });
-  });
-}
-
-// ── Scorer screen ─────────────────────────────────────────────────────────────
-async function renderScorer(area){
-  const firstMatch=state.matches[0];
-  const scorerLocked=isMatchLocked(firstMatch);
-
-  // טבלת מלך השערים מה-API
-  await renderTopScorersTable(area);
-
-  const info=el("div","card");
-  if(scorerLocked){
-    info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">מי יהיה מלך השערים? 👑</p><p style="font-size:12px;color:var(--muted);margin:0">🔒 ההימור ננעל עם פתיחת המונדיאל</p>`;
-    area.appendChild(info);
-    if(state.user.scorerBet){
-      const sel=el("div","card");sel.style.border="1.5px solid var(--green)";
-      sel.innerHTML=`<p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 4px">הימור שלך</p><p style="font-size:16px;font-weight:800;color:var(--text);margin:0">👟 ${state.user.scorerBet}</p>`;
-      area.appendChild(sel);
-    }
-    return;
-  }
-
-  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">מי יהיה מלך השערים? 👑</p>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 2px">בחר שחקן אחד. אם ניחשת נכון קיבלת <strong style="color:var(--accent)">8 נקודות בונוס!</strong></p>
-    <p style="font-size:11px;color:var(--muted);margin:0">ניתן לנחש עד אירוע הפתיחה · הרשימה מסודרת לפי א-ב</p>`;
-  area.appendChild(info);
-  const sorted=[...state.scorers].sort((a,b)=>a.localeCompare(b,"he"));
-  sorted.forEach(player=>{
-    const sel=state.user.scorerBet===player;
-    const b=el("button");
-    b.style.cssText=`display:flex;align-items:center;gap:12px;background:${sel?"var(--accent)":"var(--surface)"};border-radius:12px;border:${sel?"2px solid var(--accent)":"0.5px solid var(--border)"};padding:12px 14px;cursor:pointer;width:100%;margin-bottom:8px`;
-    b.innerHTML=`<div style="width:36px;height:36px;border-radius:50%;background:${sel?"rgba(255,255,255,.2)":"var(--chip)"};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">⚽</div><span style="flex:1;font-weight:${sel?700:500};font-size:14px;color:${sel?"#fff":"var(--text)"}">${player}</span>${sel?'<span style="color:#fff;font-size:16px">✓</span>':'<span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:20px;padding:2px 8px">+5</span>'}`;
-    b.onclick=async()=>{const np=sel?null:player;await saveScorerBet(np);state.user.scorerBet=np;render();};
-    area.appendChild(b);
-  });
-}
-
-async function renderTopScorersTable(area){
-  const card=el("div","card");card.style.marginBottom="12px";
-  card.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 8px">⚽ טבלת מלך השערים – TOP 10</p><p style="font-size:12px;color:var(--muted);margin:0">⏳ טוען...</p>`;
-  area.appendChild(card);
-
-  async function loadScorers(forceRefresh=false){
-    try{
-      const cacheKey="scorers_cache";
-      const cacheDate="scorers_date";
-      const today=new Date().toDateString();
-      let scorers=null;
-
-      if(!forceRefresh&&sessionStorage.getItem(cacheDate)===today&&sessionStorage.getItem(cacheKey)){
-        try{ scorers=JSON.parse(sessionStorage.getItem(cacheKey)); }catch(e){ scorers=null; }
-      }
-
-      if(!scorers||!scorers.length){
-        const res=await fetch("https://mondialproxy.wteashivuk.workers.dev/?type=scorers");
-        if(!res.ok) throw new Error("API "+res.status);
-        const data=await res.json();
-        scorers=(data.scorers||[]).slice(0,10);
-        if(scorers.length){
-          sessionStorage.setItem(cacheKey,JSON.stringify(scorers));
-          sessionStorage.setItem(cacheDate,today);
-        }
-      }
-
-      if(!scorers||!scorers.length) throw new Error("אין נתונים");
-
-      const medals=["🥇","🥈","🥉"];
-      let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <p style="font-weight:700;font-size:14px;color:var(--text);margin:0">⚽ טבלת מלך השערים – TOP 10</p>
-        <button id="scorers-refresh" style="font-size:11px;padding:3px 8px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">🔄 רענן</button>
-      </div>
-      <table style="width:100%;font-size:12px;border-collapse:collapse">
-        <thead><tr style="border-bottom:0.5px solid var(--border)">
-          <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400;width:28px">#</th>
-          <th style="text-align:right;padding:3px 4px;color:var(--muted);font-weight:400">שחקן</th>
-          <th style="text-align:right;padding:3px 4px;color:var(--muted);font-weight:400">נבחרת</th>
-          <th style="text-align:center;padding:3px 4px;color:var(--muted);font-weight:400">⚽</th>
-        </tr></thead><tbody>`;
-
-      scorers.forEach((s,i)=>{
-        const teamHeb=hebrewTeam(s.team?.name)||s.team?.name||"";
-        const playerName=hebrewPlayer(s.player?.name||"");
-        html+=`<tr style="border-bottom:0.5px solid var(--border)">
-          <td style="text-align:center;padding:7px 4px;font-size:${i<3?15:12}px">${i<3?medals[i]:i+1}</td>
-          <td style="padding:7px 4px;color:var(--text);font-weight:${i<3?600:400}">${playerName}</td>
-          <td style="padding:7px 4px;color:var(--muted)">${teamHeb}</td>
-          <td style="text-align:center;padding:7px 4px;font-weight:700;color:var(--accent);font-size:${i<3?15:13}px">${s.goals}</td>
-        </tr>`;
-      });
-
-      html+=`</tbody></table><p style="font-size:10px;color:var(--muted);margin:6px 0 0;text-align:left">מתעדכן פעם ביום</p>`;
-      card.innerHTML=html;
-      setTimeout(()=>{
-        const btn=qs("#scorers-refresh");
-        if(btn)btn.onclick=()=>loadScorers(true);
-      },0);
-    }catch(e){
-      card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center">
-        <p style="font-weight:700;font-size:14px;color:var(--text);margin:0">⚽ טבלת מלך השערים</p>
-        <button id="scorers-refresh" style="font-size:11px;padding:3px 8px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">🔄 נסה שוב</button>
-      </div>
-      <p style="font-size:12px;color:var(--red);margin:8px 0 0">לא ניתן לטעון כרגע</p>`;
-      setTimeout(()=>{
-        const btn=qs("#scorers-refresh");
-        if(btn)btn.onclick=()=>loadScorers(true);
-      },0);
-    }
-  }
-  await loadScorers();
 }
 
 // ── Winner screen ─────────────────────────────────────────────────────────────
@@ -2818,22 +1893,7 @@ const TEAM_NAME_MAP = {
   "Colombia":"קולומביה","Uzbekistan":"אוזבקיסטן",
 };
 
-const PLAYER_NAME_MAP = {
-  "Lionel Messi":"ליאו מסי","Vinicius Junior":"ויניסיוס ג'וניור","Vinícius Junior":"ויניסיוס ג'וניור",
-  "Kylian Mbappé":"קיליאן מבאפה","Erling Haaland":"אירלינג הולאנד",
-  "Ousmane Dembélé":"אוסמן דמבלה","Ismael Saibari":"ישמאל סיברי",
-  "Deniz Undav":"דניז אונדב","Elijah Just":"אליג'ה ג'אסט",
-  "Johan Manzambi":"יוהן מנזמבי","Jonathan David":"ג'ונתן דייוויד",
-  "Matheus Cunha":"מתאוס קונייה","Brian Brobbey":"בריאן ברובי",
-  "Ismaïla Sarr":"ישמאילה סר","Julián Quiñones":"חוליאן קינונס",
-  "Cyle Larin":"סייל לרין","Folarin Balogun":"פולרין בלוגון",
-  "Kai Havertz":"קאי הברץ","Crysencio Summerville":"קריסנסיו סמרוויל",
-  "Daichi Kamada":"דאיצ'י קמאדה","Yasin Ayari":"יאסין אייארי",
-  "Harry Kane":"הארי קיין","Jude Bellingham":"ג'וד בלינגהאם",
-  "Phil Foden":"פיל פודן","Cristiano Ronaldo":"כריסטיאנו רונאלדו",
-  "Mohamed Salah":"מוחמד סאלח","Lamine Yamal":"לאמין יאמאל","Rodrigo":"רודריגו",
-};
-function hebrewPlayer(name){ return PLAYER_NAME_MAP[name]||name; }
+function hebrewTeam(name){ return TEAM_NAME_MAP[name]||null; }
 
 // מצא משחק בלוח – רק אם שני השמות מזוהים בוודאות
 function findMatchByTeams(apiHome, apiAway){
