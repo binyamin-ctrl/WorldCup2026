@@ -682,10 +682,16 @@ function renderMatchesRefresh(){
 
 async function fetchKnockoutMatches(){
   try{
-    const res=await fetch("https://mondialproxy.wteashivuk.workers.dev/?type=knockout");
-    if(!res.ok) return null;
-    const data=await res.json();
-    return data.matches||null;
+    // שליפה נפרדת לכל שלב כדי לעקוף מגבלת ה-API
+    const stages=["LAST_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"];
+    const allMatches=[];
+    for(const stage of stages){
+      const res=await fetch(`https://mondialproxy.wteashivuk.workers.dev/?type=knockout&stage=${stage}`);
+      if(!res.ok) continue;
+      const data=await res.json();
+      if(data.matches) allMatches.push(...data.matches);
+    }
+    return allMatches.length>0?allMatches:null;
   }catch(e){return null;}
 }
 
@@ -846,7 +852,7 @@ async function renderTopScorersTable(area){
       const isUserPick=state.user?.scorerBet&&state.user.scorerBet.includes(s.player?.lastName||"");
       html+=`<tr style="border-bottom:0.5px solid var(--border);${isUserPick?"background:var(--chip)":""}">
         <td style="text-align:center;padding:7px 4px;font-size:${i<3?15:12}px">${i<3?medals[i]:i+1}</td>
-        <td style="padding:7px 4px;color:var(--text);font-weight:${i<3?600:400}">${s.player?.name||""}</td>
+        <td style="padding:7px 4px;color:var(--text);font-weight:${i<3?600:400}">${hebrewPlayer(s.player?.name||"")}</td>
         <td style="padding:7px 4px;color:var(--muted)">${teamHeb}</td>
         <td style="text-align:center;padding:7px 4px;font-weight:700;color:var(--accent);font-size:${i<3?15:13}px">${s.goals}</td>
       </tr>`;
@@ -1893,7 +1899,22 @@ const TEAM_NAME_MAP = {
   "Colombia":"קולומביה","Uzbekistan":"אוזבקיסטן",
 };
 
-function hebrewTeam(name){ return TEAM_NAME_MAP[name]||null; }
+const PLAYER_NAME_MAP = {
+  "Lionel Messi":"ליאו מסי","Vinicius Junior":"ויניסיוס ג'וניור","Vinícius Junior":"ויניסיוס ג'וניור",
+  "Kylian Mbappé":"קיליאן מבאפה","Erling Haaland":"אירלינג הולאנד",
+  "Ousmane Dembélé":"אוסמן דמבלה","Ismael Saibari":"ישמאל סיברי",
+  "Deniz Undav":"דניז אונדב","Elijah Just":"אליג'ה ג'אסט",
+  "Johan Manzambi":"יוהן מנזמבי","Jonathan David":"ג'ונתן דייוויד",
+  "Matheus Cunha":"מתאוס קונייה","Brian Brobbey":"בריאן ברובי",
+  "Ismaïla Sarr":"ישמאילה סר","Julián Quiñones":"חוליאן קינונס",
+  "Cyle Larin":"סייל לרין","Folarin Balogun":"פולרין בלוגון",
+  "Kai Havertz":"קאי הברץ","Crysencio Summerville":"קריסנסיו סמרוויל",
+  "Daichi Kamada":"דאיצ'י קמאדה","Yasin Ayari":"יאסין אייארי",
+  "Harry Kane":"הארי קיין","Jude Bellingham":"ג'וד בלינגהאם",
+  "Phil Foden":"פיל פודן","Cristiano Ronaldo":"כריסטיאנו רונאלדו",
+  "Mohamed Salah":"מוחמד סאלח","Lamine Yamal":"לאמין יאמאל","Rodrigo":"רודריגו",
+};
+function hebrewPlayer(name){ return PLAYER_NAME_MAP[name]||name; }
 
 // מצא משחק בלוח – רק אם שני השמות מזוהים בוודאות
 function findMatchByTeams(apiHome, apiAway){
