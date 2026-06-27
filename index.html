@@ -679,14 +679,48 @@ function renderMatchesRefresh(){
   const area=qs(".scroll-area");if(!area)return;
   renderMatches(area);
 }
-
+const KNOCKOUT_MATCHES = [
+  {id:"ko73",stage:"LAST_16",home:"קנדה",away:"דרום אפריקה",date:"28 יוני",time:"22:00",city:"לוס אנג'לס"},
+  {id:"ko76",stage:"LAST_16",home:"ברזיל",away:"יפן",date:"29 יוני",time:"20:00",city:"מונטריי"},
+  {id:"ko74",stage:"LAST_16",home:"גרמניה",away:"פרגוואי",date:"29 יוני",time:"23:30",city:"יוסטון"},
+  {id:"ko75",stage:"LAST_16",home:"הולנד",away:"מרוקו",date:"30 יוני",time:"04:00",city:"בוסטון"},
+  {id:"ko78",stage:"LAST_16",home:"חוף השנהב",away:"נורווגיה",date:"30 יוני",time:"20:00",city:"ניו ג'רזי"},
+  {id:"ko77",stage:"LAST_16",home:"צרפת",away:"שבדיה",date:"1 יולי",time:"00:00",city:"דאלאס"},
+  {id:"ko79",stage:"LAST_16",home:"מקסיקו",away:null,date:"1 יולי",time:"04:00",city:"מקסיקו סיטי"},
+  {id:"ko80",stage:"LAST_16",home:null,away:null,date:"1 יולי",time:"19:00",city:"אטלנטה"},
+  {id:"ko82",stage:"LAST_16",home:"בלגיה",away:null,date:"1 יולי",time:"23:00",city:"סן פרנסיסקו"},
+  {id:"ko81",stage:"LAST_16",home:"ארצות הברית",away:"בוסניה",date:"2 יולי",time:"03:00",city:"סיאטל"},
+  {id:"ko84",stage:"LAST_16",home:"ספרד",away:null,date:"2 יולי",time:"22:00",city:"טורונטו"},
+  {id:"ko83",stage:"LAST_16",home:null,away:null,date:"3 יולי",time:"02:00",city:"לוס אנג'לס"},
+  {id:"ko85",stage:"LAST_16",home:"שוויץ",away:null,date:"3 יולי",time:"06:00",city:"ונקובר"},
+  {id:"ko86",stage:"LAST_16",home:"אוסטרליה",away:"מצרים",date:"3 יולי",time:"21:00",city:"דאלאס"},
+  {id:"ko88",stage:"LAST_16",home:"ארגנטינה",away:"כף ורדה",date:"4 יולי",time:"01:00",city:"קנזס סיטי"},
+  {id:"ko87",stage:"LAST_16",home:null,away:null,date:"4 יולי",time:"04:30",city:"מיאמי"},
+];
 async function fetchKnockoutMatches(){
-  try{
-    const res=await fetch("https://mondialproxy.wteashivuk.workers.dev/?type=knockout");
-    if(!res.ok) return null;
-    const data=await res.json();
-    return data.matches||null;
-  }catch(e){return null;}
+  const hasNulls=KNOCKOUT_MATCHES.some(m=>!m.home||!m.away);
+  if(hasNulls){
+    try{
+      const res=await fetch("https://mondialproxy.wteashivuk.workers.dev/?type=knockout");
+      if(res.ok){
+        const data=await res.json();
+        if(data.matches){
+          data.matches.forEach(apiMatch=>{
+            const h=apiMatch.homeTeam?.name?hebrewTeam(apiMatch.homeTeam.name):null;
+            const a=apiMatch.awayTeam?.name?hebrewTeam(apiMatch.awayTeam.name):null;
+            if(!h&&!a)return;
+            const koId="ko"+apiMatch.id;
+            const local=KNOCKOUT_MATCHES.find(m=>m.id===koId);
+            if(local){
+              if(h&&!local.home)local.home=h;
+              if(a&&!local.away)local.away=a;
+            }
+          });
+        }
+      }
+    }catch(e){}
+  }
+  return KNOCKOUT_MATCHES;
 }
 
 async function renderKnockout(area){
