@@ -256,9 +256,11 @@ function logout(){
 // ── Bet saving ────────────────────────────────────────────────────────────────
 async function saveBet(matchId,val){
   if(!state.user)return;
-  // בדיקת נעילה – מניעה כפולה גם בצד הלוגיקה
-  const match=state.matches.find(m=>m.id===matchId);
-  if(!match||isMatchLocked(match)){console.warn("ניסיון ניחוש על משחק נעול:",matchId);return;}
+  // חפש בבתים ובנוקאאוט
+  const match=state.matches.find(m=>m.id===matchId)||KNOCKOUT_MATCHES.find(m=>m.id===matchId);
+  if(!match){console.warn("משחק לא נמצא:",matchId);return;}
+  // בדיקת נעילה
+  if(match.locked||match.result){console.warn("משחק נעול:",matchId);return;}
   state.user.bets={...state.user.bets,[matchId]:val};
   const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   state.user.points=pts;
@@ -1131,30 +1133,58 @@ function renderPrizes(area){
 // ── Profile screen ────────────────────────────────────────────────────────────
 function renderProfile(area){
   const u=state.user;
-  // חשב נקודות בזמן אמת מהניחושים הקיימים
   const livePoints=calcPoints(u,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   if(u.points!==livePoints){u.points=livePoints;fsSaveUser({...u,points:livePoints});}
+
+  // ניחושים בתים + נוקאאוט
   const myBets=state.matches.filter(m=>u.bets&&u.bets[m.id]);
-  const correctBets=state.matches.filter(m=>m.result&&u.bets&&u.bets[m.id]===m.result);
-  const playedMatches=state.matches.filter(m=>m.result);
-  const guessRatio=playedMatches.length>0?`${correctBets.length}/${playedMatches.length} נכון`:"טרם נקבע";
+  const myKoBets=KNOCKOUT_MATCHES.filter(m=>u.bets&&u.bets[m.id]);
+  const totalBets=myBets.length+myKoBets.length;
+  const totalMatches=state.matches.length+KNOCKOUT_MATCHES.length;
+
+  function betRow(m){
+    const bet=u.bets[m.id];
+    const betLabel=bet==="2"?m.home:bet==="1"?m.away:"תיקו";
+    const isCorrect=!!(m.result&&bet===m.result);
+    const isWrong=!!(m.result&&bet!==m.result);
+    const resultLabel=m.result==="2"?m.home:m.result==="1"?m.away:"תיקו";
+    const bgColor=isCorrect?"var(--green)":isWrong?"#fde8e8":"var(--chip)";
+    const txtColor=isCorrect?"#fff":isWrong?"var(--red)":"var(--accent)";
+    const icon=isCorrect?" ✅":isWrong?" ❌":"";
+    return `<div style='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)'>
+      <div style='flex:1;min-width:0'>
+        <p style='margin:0;font-size:13px;color:var(--text)'>${m.home||"?"} נ׳ ${m.away||"?"}</p>
+        <p style='margin:0;font-size:11px;color:var(--muted)'>${m.date} · ${m.time}</p>
+        ${m.result?`<p style='margin:2px 0 0;font-size:11px;color:var(--muted)'>תוצאה: ${resultLabel}</p>`:""}
+      </div>
+      <span style='font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;background:${bgColor};color:${txtColor}'>${betLabel}${icon}</span>
+    </div>`;
+  }
+
   area.style.fontFamily="system-ui,-apple-system,sans-serif";
   area.innerHTML=`
   <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:20px">
     <div style="width:72px;height:72px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;font-weight:700">${u.name.slice(0,1)}</div>
-    <p style="margin:0;font-size:20px;font-weight:700;color:var(--text);font-family:system-ui,-apple-system,sans-serif">${u.name}</p>
-    <span style="font-size:13px;padding:4px 14px;border-radius:20px;background:var(--chip);color:var(--muted);font-family:system-ui,-apple-system,sans-serif">${u.dept}</span>
-    <button id="logout-btn" style="font-size:12px;padding:4px 14px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:system-ui,-apple-system,sans-serif">התנתק</button>
+    <p style="margin:0;font-size:20px;font-weight:700;color:var(--text)">${u.name}</p>
+    <span style="font-size:13px;padding:4px 14px;border-radius:20px;background:var(--chip);color:var(--muted)">${u.dept}</span>
+    <button id="logout-btn" style="font-size:12px;padding:4px 14px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">התנתק</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-    ${[
-      ["🎯","ניחושים שלי",myBets.length+"/"+state.matches.length],
-      ["⭐","הניקוד שלי",livePoints]
-    ].map(([e,l,v])=>`<div class="card" style="text-align:center;padding:20px 12px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:28px;margin:0 0 8px">${e}</p><p style="font-size:26px;font-weight:700;color:var(--accent);margin:0 0 4px">${v}</p><p style="font-size:13px;font-weight:600;color:var(--text);margin:0">${l}</p></div>`).join("")}
+    <div class="card" style="text-align:center;padding:20px 12px">
+      <p style="font-size:28px;margin:0 0 8px">🎯</p>
+      <p style="font-size:26px;font-weight:700;color:var(--accent);margin:0 0 4px">${totalBets}/${totalMatches}</p>
+      <p style="font-size:13px;font-weight:600;color:var(--text);margin:0">ניחושים שלי</p>
+    </div>
+    <div class="card" style="text-align:center;padding:20px 12px">
+      <p style="font-size:28px;margin:0 0 8px">⭐</p>
+      <p style="font-size:26px;font-weight:700;color:var(--accent);margin:0 0 4px">${livePoints}</p>
+      <p style="font-size:13px;font-weight:600;color:var(--text);margin:0">הניקוד שלי</p>
+    </div>
   </div>
-  ${u.winnerBet?`<div class="card" style="border:1.5px solid var(--accent);margin-bottom:10px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור אלופת המונדיאל</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">🌍 ${u.winnerBet}</p></div>`:""}
-  ${u.scorerBet?`<div class="card" style="border:1.5px solid var(--green);margin-bottom:10px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור מלך השערים</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">👟 ${u.scorerBet}</p></div>`:""}
-  ${myBets.length?`<div class="card" style="font-family:system-ui,-apple-system,sans-serif"><p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 10px;border-bottom:0.5px solid var(--border);padding-bottom:8px">הניחושים שלי (${myBets.length})</p>${myBets.map(m=>{const bet=u.bets[m.id];const betLabel=bet==="2"?m.home:bet==="1"?m.away:"תיקו";const isCorrect=!!(m.result&&bet===m.result);const isWrong=!!(m.result&&bet!==m.result);const resultLabel=m.result==="2"?m.home:m.result==="1"?m.away:"תיקו";const bgColor=isCorrect?"var(--green)":isWrong?"#fde8e8":"var(--chip)";const txtColor=isCorrect?"#fff":isWrong?"var(--red)":"var(--accent)";const icon=isCorrect?" ✅":isWrong?" ❌":"";return "<div style='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)'><div style='flex:1;min-width:0'><p style='margin:0;font-size:13px;color:var(--text)'>"+m.home+" נ׳ "+m.away+"</p><p style='margin:0;font-size:11px;color:var(--muted)'>"+m.date+" · "+m.time+"</p>"+(m.result?"<p style='margin:2px 0 0;font-size:11px;color:var(--muted)'>תוצאה: "+resultLabel+"</p>":"")+"</div><span style='font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;background:"+bgColor+";color:"+txtColor+"'>"+betLabel+icon+"</span></div>";}).join("")}</div>`:""}`;
+  ${u.winnerBet?`<div class="card" style="border:1.5px solid var(--accent);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור אלופת המונדיאל</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">🌍 ${u.winnerBet}</p></div>`:""}
+  ${u.scorerBet?`<div class="card" style="border:1.5px solid var(--green);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור מלך השערים</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">👟 ${u.scorerBet}</p></div>`:""}
+  ${myBets.length?`<div class="card"><p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 10px;border-bottom:0.5px solid var(--border);padding-bottom:8px">⚽ ניחושי שלב הבתים (${myBets.length})</p>${myBets.map(betRow).join("")}</div>`:""}
+  ${myKoBets.length?`<div class="card" style="margin-top:10px"><p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 10px;border-bottom:0.5px solid var(--border);padding-bottom:8px">🏆 ניחושי נוקאאוט (${myKoBets.length})</p>${myKoBets.map(betRow).join("")}</div>`:""}`;
   setTimeout(()=>{const lb=qs("#logout-btn");if(lb)lb.onclick=logout;},0);
 }
 
