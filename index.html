@@ -1719,7 +1719,8 @@ function renderAdminPrizes(content){
     });
     pr.groupSizes=groupSizes;
     state.prizes={...state.prizes,...pr};
-    await fsSaveSettings({prizes:state.prizes});
+    // שמור prizes וגם groupSizes כשדה עצמאי למניעת דריסה
+    await fsSaveSettings({prizes:state.prizes, groupSizes:groupSizes});
     saveBtn.textContent="✓ נשמר!";setTimeout(()=>saveBtn.textContent="שמור הכל",2000);
   };
   content.appendChild(saveBtn);
@@ -2020,6 +2021,7 @@ async function init(){
     state.scorers=sc;
   }
   if(settings.prizes)state.prizes={...state.prizes,...settings.prizes};
+  if(settings.groupSizes)state.prizes={...state.prizes,groupSizes:settings.groupSizes};
   const isOldDepts=(d)=>d&&d.some(x=>x==="מנהלה"||x==="שיווק"||x==="מפעל"||x==="שרשרת אספקה");
   if(settings.departments&&!isOldDepts(settings.departments)) state.departments=settings.departments;
   else { state.departments=[...DEFAULT_DEPARTMENTS]; await fsSaveSettings({departments:[...DEFAULT_DEPARTMENTS]}); }
@@ -2057,6 +2059,7 @@ async function init(){
   fsListenSettings(settings=>{
     if(settings.scorers)state.scorers=settings.scorers;
     if(settings.prizes)state.prizes={...state.prizes,...settings.prizes};
+    if(settings.groupSizes)state.prizes={...state.prizes,groupSizes:settings.groupSizes};
     if(settings.departments&&!isOldDepts(settings.departments))state.departments=settings.departments;
     if(settings.knockoutMatches&&settings.knockoutMatches.length){
       settings.knockoutMatches.forEach(sm=>{
