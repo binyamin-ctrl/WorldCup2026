@@ -2085,16 +2085,6 @@ async function init(){
   }
 
   render();
-
-  // חישוב נקודות מחדש בטעינה – מבטיח עדכניות
-  setTimeout(async()=>{
-    await recalcAllPoints();
-    // רענן דירוג אם פתוח
-    if(state.user&&state.screen==="leaderboard"){
-      const area=qs(".scroll-area");
-      if(area)renderLeaderboard(area);
-    }
-  }, 2000);
 }
 
 init();
