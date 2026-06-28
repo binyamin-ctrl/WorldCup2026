@@ -778,12 +778,16 @@ async function renderKnockout(area){
       card.innerHTML=h;
       if(m.home&&m.away&&(!isLocked||userBet)){
         const chipsDiv=el("div","bet-chips");
+        // בשלב נוקאאוט – אין תיקו (אלא אם כבר סומן בעבר, לאפשר הסרה)
+        const isKnockout=["LAST_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"].includes(m.stage);
         [[2,m.home],["X","תיקו"],[1,m.away]].forEach(([v,label])=>{
           const isSelected=userBet===String(v);
-          const b=el("button","bet-chip"+(isSelected?" sel":"")+(isLocked&&!isSelected?" disabled":""));
-          b.style.opacity=isLocked&&!isSelected?"0.32":"1";
+          const isDrawBlocked=isKnockout&&v==="X"&&!isSelected; // תיקו חסום אם לא נבחר
+          const b=el("button","bet-chip"+(isSelected?" sel":"")+(isLocked&&!isSelected?" disabled":"")+(isDrawBlocked?" disabled":""));
+          b.style.opacity=(isLocked&&!isSelected)||isDrawBlocked?"0.32":"1";
+          b.title=isDrawBlocked?"בשלב הנוקאאוט אין תיקו":"";
           b.innerHTML=`<span>${v}</span><span style="font-size:9px">${String(label).length>6?String(label).slice(0,6)+"…":String(label)}</span>`;
-          if(!isLocked)b.onclick=async()=>{
+          if(!isLocked&&!isDrawBlocked)b.onclick=async()=>{
             const newVal=isSelected?null:String(v);
             if(newVal===null){
               delete state.user.bets[m.id];
@@ -798,6 +802,14 @@ async function renderKnockout(area){
           };
           chipsDiv.appendChild(b);
         });
+        card.appendChild(chipsDiv);
+        // הודעה למי שסימן תיקו בעבר
+        if(isKnockout&&userBet==="X"){
+          const warn=el("p");
+          warn.style.cssText="font-size:11px;color:var(--red);text-align:center;margin:4px 0 0;font-weight:600";
+          warn.textContent="⚠️ בשלב הנוקאאוט אין תיקו – לחץ על X להסרה ובחר נבחרת";
+          card.appendChild(warn);
+        }
         card.appendChild(chipsDiv);
       } else if(!m.home||!m.away){
         const p=el("p");
