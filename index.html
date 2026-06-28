@@ -195,7 +195,7 @@ function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className
 function shortName(n){return n.length>6?n.slice(0,6)+"…":n;}
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let state={user:null,screen:"matches",dark:false,matchTab:"groups",activeGroup:"א",matches:[...SCHEDULE],scorers:[...DEFAULT_SCORERS],departments:[...DEFAULT_DEPARTMENTS],prizes:{first:"",second:"",third:"",dept:""},adminTab:"results",adminGroup:"א",userFilter:"all",leaderTab:"personal",allUsers:[],liveUsers:[]};
+let state={user:null,screen:"matches",dark:false,matchTab:"knockout",activeGroup:"א",matches:[...SCHEDULE],scorers:[...DEFAULT_SCORERS],departments:[...DEFAULT_DEPARTMENTS],prizes:{first:"",second:"",third:"",dept:""},adminTab:"results",adminGroup:"א",userFilter:"all",leaderTab:"personal",allUsers:[],liveUsers:[]};
 
 // ── Firestore ─────────────────────────────────────────────────────────────────
 async function fsGetUser(name){
@@ -517,7 +517,7 @@ function renderMatches(area){
 
   // 2 לשוניות בלבד: שלב בתים / שלב נוקאאוט
   const mainTabs=el("div","tab-bar");mainTabs.style.margin="0 0 10px";
-  [["groups","⚽ שלב הבתים"],["knockout","🏆 שלב נוקאאוט"]].forEach(([id,label])=>{
+  [["groups","⚽ שלב הבתים"],["knockout","🏆 שלב הנוקאאוט"]].forEach(([id,label])=>{
     const b=el("button","tab-btn"+(state.matchTab===id?" active":""));
     b.textContent=label;
     b.onclick=()=>{state.matchTab=id;renderMatches(area);};
