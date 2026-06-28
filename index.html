@@ -256,10 +256,8 @@ function logout(){
 // ── Bet saving ────────────────────────────────────────────────────────────────
 async function saveBet(matchId,val){
   if(!state.user)return;
-  // חפש בבתים ובנוקאאוט
   const match=state.matches.find(m=>m.id===matchId)||KNOCKOUT_MATCHES.find(m=>m.id===matchId);
   if(!match){console.warn("משחק לא נמצא:",matchId);return;}
-  // בדיקת נעילה
   if(match.locked||match.result){console.warn("משחק נעול:",matchId);return;}
   state.user.bets={...state.user.bets,[matchId]:val};
   const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
@@ -267,7 +265,16 @@ async function saveBet(matchId,val){
   const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
   if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:state.user.bets,points:pts};
   else state.liveUsers.push({...state.user,points:pts});
-  await fsSaveUser({...state.user,points:pts});
+  // updateDoc שומר רק את השדה הספציפי – לא דורס ניחושים אחרים
+  try{
+    await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{
+      [`bets.${matchId}`]:val,
+      points:pts
+    });
+  }catch(e){
+    // אם המסמך לא קיים – צור אותו
+    await setDoc(doc(db,"users",state.user.name.toLowerCase()),{...state.user,points:pts});
+  }
 }
 
 async function saveScorerBet(player){
@@ -2012,8 +2019,7 @@ async function init(){
     }
     state.scorers=sc;
   }
-  if(settings.prizes)state.prizes=settings.prizes;
-  // בדיקה – אם Firebase מחזיר רשימה ישנה נאפס לברירת מחדל החדשה
+  if(settings.prizes)state.prizes={...state.prizes,...settings.prizes};
   const isOldDepts=(d)=>d&&d.some(x=>x==="מנהלה"||x==="שיווק"||x==="מפעל"||x==="שרשרת אספקה");
   if(settings.departments&&!isOldDepts(settings.departments)) state.departments=settings.departments;
   else { state.departments=[...DEFAULT_DEPARTMENTS]; await fsSaveSettings({departments:[...DEFAULT_DEPARTMENTS]}); }
@@ -2050,7 +2056,7 @@ async function init(){
   });
   fsListenSettings(settings=>{
     if(settings.scorers)state.scorers=settings.scorers;
-    if(settings.prizes)state.prizes=settings.prizes;
+    if(settings.prizes)state.prizes={...state.prizes,...settings.prizes};
     if(settings.departments&&!isOldDepts(settings.departments))state.departments=settings.departments;
     if(settings.knockoutMatches&&settings.knockoutMatches.length){
       settings.knockoutMatches.forEach(sm=>{
