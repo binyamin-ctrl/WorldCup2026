@@ -260,7 +260,7 @@ async function saveBet(matchId,val){
   const match=state.matches.find(m=>m.id===matchId);
   if(!match||isMatchLocked(match)){console.warn("ניסיון ניחוש על משחק נעול:",matchId);return;}
   state.user.bets={...state.user.bets,[matchId]:val};
-  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   state.user.points=pts;
   const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
   if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:state.user.bets,points:pts};
@@ -271,7 +271,7 @@ async function saveBet(matchId,val){
 async function saveScorerBet(player){
   if(!state.user)return;
   state.user.scorerBet=player;
-  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   state.user.points=pts;
   const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
   if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],scorerBet:player,points:pts};
@@ -281,7 +281,7 @@ async function saveScorerBet(player){
 async function saveWinnerBet(team){
   if(!state.user)return;
   state.user.winnerBet=team;
-  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   state.user.points=pts;
   const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
   if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],winnerBet:team,points:pts};
@@ -306,8 +306,10 @@ async function recalcAllPoints(){
   const allUsers=await fsGetAllUsers();
   const topScorer=state.prizes.topScorer||null;
   const winnerResult=state.prizes.winner||null;
+  // חשב על כל המשחקים – בתים + נוקאאוט
+  const allMatches=[...state.matches,...KNOCKOUT_MATCHES];
   const updates=allUsers.map(async u=>{
-    const pts=calcPoints(u,state.matches,{topScorer},state.prizes,winnerResult);
+    const pts=calcPoints(u,allMatches,{topScorer},state.prizes,winnerResult);
     if(u.points!==pts){
       await fsSaveUser({...u,points:pts});
     }
@@ -642,10 +644,10 @@ function matchCard(m){
       // בדיקה כפולה – אולי המשחק התחיל מאז שנטען הדף
       if(isMatchLocked(m)){renderMatchesRefresh();return;}
       const newVal=isSelected?null:String(v);
-      const pts_before=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+      const pts_before=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
       if(newVal===null){
         delete state.user.bets[m.id];
-        const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+        const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
         state.user.points=pts;
         const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
         if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:{...state.user.bets},points:pts};
@@ -655,7 +657,7 @@ function matchCard(m){
         });
       } else {
         state.user.bets[m.id]=newVal;
-        const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+        const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
         state.user.points=pts;
         const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
         if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:{...state.user.bets},points:pts};
@@ -778,7 +780,7 @@ async function renderKnockout(area){
             const newVal=isSelected?null:String(v);
             if(newVal===null){
               delete state.user.bets[m.id];
-              const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+              const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
               state.user.points=pts;
               await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{[`bets.${m.id}`]:deleteField(),points:pts});
             } else {
@@ -1125,7 +1127,7 @@ function renderPrizes(area){
 function renderProfile(area){
   const u=state.user;
   // חשב נקודות בזמן אמת מהניחושים הקיימים
-  const livePoints=calcPoints(u,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  const livePoints=calcPoints(u,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   if(u.points!==livePoints){u.points=livePoints;fsSaveUser({...u,points:livePoints});}
   const myBets=state.matches.filter(m=>u.bets&&u.bets[m.id]);
   const correctBets=state.matches.filter(m=>m.result&&u.bets&&u.bets[m.id]===m.result);
@@ -1825,7 +1827,7 @@ async function showUserBetsEditor(content, userName){
     const newScorer=qs("#scorer-select")?qs("#scorer-select").value||null:freshUser.scorerBet;
     const newWinner=qs("#winner-select")?qs("#winner-select").value||null:freshUser.winnerBet;
     const updated={...freshUser,bets:currentBets,scorerBet:newScorer,winnerBet:newWinner};
-    const pts=calcPoints(updated,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+    const pts=calcPoints(updated,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
     updated.points=pts;
     await setDoc(doc(db,"users",updated.name.toLowerCase()),updated);
     qs("#save-bets-btn").textContent="✓ נשמר! " + pts + " נקודות";
@@ -1864,7 +1866,7 @@ async function init(){
       const me=users.find(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
       if(me){
         state.user={...state.user,...me};
-        const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+        const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
         if(state.user.points!==pts){
           state.user.points=pts;
           await fsSaveUser({...state.user,points:pts});
