@@ -195,7 +195,7 @@ function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className
 function shortName(n){return n.length>6?n.slice(0,6)+"…":n;}
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let state={user:null,screen:"matches",dark:false,matchTab:"groups",activeGroup:"א",matches:[...SCHEDULE],scorers:[...DEFAULT_SCORERS],departments:[...DEFAULT_DEPARTMENTS],prizes:{first:"",second:"",third:"",dept:""},adminTab:"results",adminGroup:"א",userFilter:"all",leaderTab:"personal",allUsers:[],liveUsers:[]};
+let state={user:null,screen:"matches",dark:false,matchTab:"knockout",activeGroup:"א",matches:[...SCHEDULE],scorers:[...DEFAULT_SCORERS],departments:[...DEFAULT_DEPARTMENTS],prizes:{first:"",second:"",third:"",dept:""},adminTab:"results",adminGroup:"א",userFilter:"all",leaderTab:"personal",allUsers:[],liveUsers:[]};
 
 // ── Firestore ─────────────────────────────────────────────────────────────────
 async function fsGetUser(name){
@@ -256,22 +256,31 @@ function logout(){
 // ── Bet saving ────────────────────────────────────────────────────────────────
 async function saveBet(matchId,val){
   if(!state.user)return;
-  // בדיקת נעילה – מניעה כפולה גם בצד הלוגיקה
-  const match=state.matches.find(m=>m.id===matchId);
-  if(!match||isMatchLocked(match)){console.warn("ניסיון ניחוש על משחק נעול:",matchId);return;}
+  const match=state.matches.find(m=>m.id===matchId)||KNOCKOUT_MATCHES.find(m=>m.id===matchId);
+  if(!match){console.warn("משחק לא נמצא:",matchId);return;}
+  if(match.locked||match.result){console.warn("משחק נעול:",matchId);return;}
   state.user.bets={...state.user.bets,[matchId]:val};
-  const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   state.user.points=pts;
   const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
   if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:state.user.bets,points:pts};
   else state.liveUsers.push({...state.user,points:pts});
-  await fsSaveUser({...state.user,points:pts});
+  // updateDoc שומר רק את השדה הספציפי – לא דורס ניחושים אחרים
+  try{
+    await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{
+      [`bets.${matchId}`]:val,
+      points:pts
+    });
+  }catch(e){
+    // אם המסמך לא קיים – צור אותו
+    await setDoc(doc(db,"users",state.user.name.toLowerCase()),{...state.user,points:pts});
+  }
 }
 
 async function saveScorerBet(player){
   if(!state.user)return;
   state.user.scorerBet=player;
-  const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   state.user.points=pts;
   const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
   if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],scorerBet:player,points:pts};
@@ -281,7 +290,7 @@ async function saveScorerBet(player){
 async function saveWinnerBet(team){
   if(!state.user)return;
   state.user.winnerBet=team;
-  const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   state.user.points=pts;
   const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
   if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],winnerBet:team,points:pts};
@@ -291,13 +300,20 @@ async function saveWinnerBet(team){
 // ── Compute points ────────────────────────────────────────────────────────────
 function calcPoints(user,matches,scorers,prizes,winnerResult){
   let pts=0;
+  // נקודות על משחקי בתים
   matches.forEach(m=>{
     if(!user.bets||!user.bets[m.id]) return;
-    pts+=1; // נקודה על כל ניחוש (ללא קשר לתוצאה)
-    if(m.result&&user.bets[m.id]===m.result) pts+=5; // +5 על ניחוש נכון
+    pts+=1;
+    if(m.result&&user.bets[m.id]===m.result) pts+=5;
   });
-  if(user.scorerBet&&scorers.topScorer&&user.scorerBet===scorers.topScorer) pts+=8; // +8 מלך שערים
-  if(user.winnerBet&&winnerResult&&user.winnerBet===winnerResult) pts+=10; // +10 אלופת המונדיאל
+  // נקודות על משחקי נוקאאוט
+  KNOCKOUT_MATCHES.forEach(m=>{
+    if(!user.bets||!user.bets[m.id]) return;
+    pts+=1;
+    if(m.result&&user.bets[m.id]===m.result) pts+=5;
+  });
+  if(user.scorerBet&&scorers.topScorer&&user.scorerBet===scorers.topScorer) pts+=8;
+  if(user.winnerBet&&winnerResult&&user.winnerBet===winnerResult) pts+=10;
   return pts;
 }
 
@@ -306,10 +322,8 @@ async function recalcAllPoints(){
   const allUsers=await fsGetAllUsers();
   const topScorer=state.prizes.topScorer||null;
   const winnerResult=state.prizes.winner||null;
-  // חשב על כל המשחקים – בתים + נוקאאוט
-  const allMatches=[...state.matches,...KNOCKOUT_MATCHES];
   const updates=allUsers.map(async u=>{
-    const pts=calcPoints(u,allMatches,{topScorer},state.prizes,winnerResult);
+    const pts=calcPoints(u,state.matches,{topScorer},state.prizes,winnerResult);
     if(u.points!==pts){
       await fsSaveUser({...u,points:pts});
     }
@@ -510,7 +524,7 @@ function renderMatches(area){
 
   // 2 לשוניות בלבד: שלב בתים / שלב נוקאאוט
   const mainTabs=el("div","tab-bar");mainTabs.style.margin="0 0 10px";
-  [["groups","⚽ שלב הבתים"],["knockout","🏆 שלב נוקאאוט"]].forEach(([id,label])=>{
+  [["groups","⚽ שלב הבתים"],["knockout","🏆 שלב הנוקאאוט"]].forEach(([id,label])=>{
     const b=el("button","tab-btn"+(state.matchTab===id?" active":""));
     b.textContent=label;
     b.onclick=()=>{state.matchTab=id;renderMatches(area);};
@@ -644,10 +658,10 @@ function matchCard(m){
       // בדיקה כפולה – אולי המשחק התחיל מאז שנטען הדף
       if(isMatchLocked(m)){renderMatchesRefresh();return;}
       const newVal=isSelected?null:String(v);
-      const pts_before=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+      const pts_before=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
       if(newVal===null){
         delete state.user.bets[m.id];
-        const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+        const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
         state.user.points=pts;
         const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
         if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:{...state.user.bets},points:pts};
@@ -657,7 +671,7 @@ function matchCard(m){
         });
       } else {
         state.user.bets[m.id]=newVal;
-        const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+        const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
         state.user.points=pts;
         const idx=state.liveUsers.findIndex(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
         if(idx>=0) state.liveUsers[idx]={...state.liveUsers[idx],bets:{...state.user.bets},points:pts};
@@ -771,16 +785,20 @@ async function renderKnockout(area){
       card.innerHTML=h;
       if(m.home&&m.away&&(!isLocked||userBet)){
         const chipsDiv=el("div","bet-chips");
+        // בשלב נוקאאוט – אין תיקו (אלא אם כבר סומן בעבר, לאפשר הסרה)
+        const isKnockout=["LAST_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"].includes(m.stage);
         [[2,m.home],["X","תיקו"],[1,m.away]].forEach(([v,label])=>{
           const isSelected=userBet===String(v);
-          const b=el("button","bet-chip"+(isSelected?" sel":"")+(isLocked&&!isSelected?" disabled":""));
-          b.style.opacity=isLocked&&!isSelected?"0.32":"1";
+          const isDrawBlocked=isKnockout&&v==="X"&&!isSelected; // תיקו חסום אם לא נבחר
+          const b=el("button","bet-chip"+(isSelected?" sel":"")+(isLocked&&!isSelected?" disabled":"")+(isDrawBlocked?" disabled":""));
+          b.style.opacity=(isLocked&&!isSelected)||isDrawBlocked?"0.32":"1";
+          b.title=isDrawBlocked?"בשלב הנוקאאוט אין תיקו":"";
           b.innerHTML=`<span>${v}</span><span style="font-size:9px">${String(label).length>6?String(label).slice(0,6)+"…":String(label)}</span>`;
-          if(!isLocked)b.onclick=async()=>{
+          if(!isLocked&&!isDrawBlocked)b.onclick=async()=>{
             const newVal=isSelected?null:String(v);
             if(newVal===null){
               delete state.user.bets[m.id];
-              const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+              const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
               state.user.points=pts;
               await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{[`bets.${m.id}`]:deleteField(),points:pts});
             } else {
@@ -791,6 +809,14 @@ async function renderKnockout(area){
           };
           chipsDiv.appendChild(b);
         });
+        card.appendChild(chipsDiv);
+        // הודעה למי שסימן תיקו בעבר
+        if(isKnockout&&userBet==="X"){
+          const warn=el("p");
+          warn.style.cssText="font-size:11px;color:var(--red);text-align:center;margin:4px 0 0;font-weight:600";
+          warn.textContent="⚠️ בשלב הנוקאאוט אין תיקו – לחץ על X להסרה ובחר נבחרת";
+          card.appendChild(warn);
+        }
         card.appendChild(chipsDiv);
       } else if(!m.home||!m.away){
         const p=el("p");
@@ -1126,30 +1152,58 @@ function renderPrizes(area){
 // ── Profile screen ────────────────────────────────────────────────────────────
 function renderProfile(area){
   const u=state.user;
-  // חשב נקודות בזמן אמת מהניחושים הקיימים
-  const livePoints=calcPoints(u,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+  const livePoints=calcPoints(u,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
   if(u.points!==livePoints){u.points=livePoints;fsSaveUser({...u,points:livePoints});}
+
+  // ניחושים בתים + נוקאאוט
   const myBets=state.matches.filter(m=>u.bets&&u.bets[m.id]);
-  const correctBets=state.matches.filter(m=>m.result&&u.bets&&u.bets[m.id]===m.result);
-  const playedMatches=state.matches.filter(m=>m.result);
-  const guessRatio=playedMatches.length>0?`${correctBets.length}/${playedMatches.length} נכון`:"טרם נקבע";
+  const myKoBets=KNOCKOUT_MATCHES.filter(m=>u.bets&&u.bets[m.id]);
+  const totalBets=myBets.length+myKoBets.length;
+  const totalMatches=state.matches.length+KNOCKOUT_MATCHES.length;
+
+  function betRow(m){
+    const bet=u.bets[m.id];
+    const betLabel=bet==="2"?m.home:bet==="1"?m.away:"תיקו";
+    const isCorrect=!!(m.result&&bet===m.result);
+    const isWrong=!!(m.result&&bet!==m.result);
+    const resultLabel=m.result==="2"?m.home:m.result==="1"?m.away:"תיקו";
+    const bgColor=isCorrect?"var(--green)":isWrong?"#fde8e8":"var(--chip)";
+    const txtColor=isCorrect?"#fff":isWrong?"var(--red)":"var(--accent)";
+    const icon=isCorrect?" ✅":isWrong?" ❌":"";
+    return `<div style='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)'>
+      <div style='flex:1;min-width:0'>
+        <p style='margin:0;font-size:13px;color:var(--text)'>${m.home||"?"} נ׳ ${m.away||"?"}</p>
+        <p style='margin:0;font-size:11px;color:var(--muted)'>${m.date} · ${m.time}</p>
+        ${m.result?`<p style='margin:2px 0 0;font-size:11px;color:var(--muted)'>תוצאה: ${resultLabel}</p>`:""}
+      </div>
+      <span style='font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;background:${bgColor};color:${txtColor}'>${betLabel}${icon}</span>
+    </div>`;
+  }
+
   area.style.fontFamily="system-ui,-apple-system,sans-serif";
   area.innerHTML=`
   <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:20px">
     <div style="width:72px;height:72px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;font-weight:700">${u.name.slice(0,1)}</div>
-    <p style="margin:0;font-size:20px;font-weight:700;color:var(--text);font-family:system-ui,-apple-system,sans-serif">${u.name}</p>
-    <span style="font-size:13px;padding:4px 14px;border-radius:20px;background:var(--chip);color:var(--muted);font-family:system-ui,-apple-system,sans-serif">${u.dept}</span>
-    <button id="logout-btn" style="font-size:12px;padding:4px 14px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:system-ui,-apple-system,sans-serif">התנתק</button>
+    <p style="margin:0;font-size:20px;font-weight:700;color:var(--text)">${u.name}</p>
+    <span style="font-size:13px;padding:4px 14px;border-radius:20px;background:var(--chip);color:var(--muted)">${u.dept}</span>
+    <button id="logout-btn" style="font-size:12px;padding:4px 14px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">התנתק</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-    ${[
-      ["🎯","ניחושים שלי",myBets.length+"/"+state.matches.length],
-      ["⭐","הניקוד שלי",livePoints]
-    ].map(([e,l,v])=>`<div class="card" style="text-align:center;padding:20px 12px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:28px;margin:0 0 8px">${e}</p><p style="font-size:26px;font-weight:700;color:var(--accent);margin:0 0 4px">${v}</p><p style="font-size:13px;font-weight:600;color:var(--text);margin:0">${l}</p></div>`).join("")}
+    <div class="card" style="text-align:center;padding:20px 12px">
+      <p style="font-size:28px;margin:0 0 8px">🎯</p>
+      <p style="font-size:26px;font-weight:700;color:var(--accent);margin:0 0 4px">${totalBets}/${totalMatches}</p>
+      <p style="font-size:13px;font-weight:600;color:var(--text);margin:0">ניחושים שלי</p>
+    </div>
+    <div class="card" style="text-align:center;padding:20px 12px">
+      <p style="font-size:28px;margin:0 0 8px">⭐</p>
+      <p style="font-size:26px;font-weight:700;color:var(--accent);margin:0 0 4px">${livePoints}</p>
+      <p style="font-size:13px;font-weight:600;color:var(--text);margin:0">הניקוד שלי</p>
+    </div>
   </div>
-  ${u.winnerBet?`<div class="card" style="border:1.5px solid var(--accent);margin-bottom:10px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור אלופת המונדיאל</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">🌍 ${u.winnerBet}</p></div>`:""}
-  ${u.scorerBet?`<div class="card" style="border:1.5px solid var(--green);margin-bottom:10px;font-family:system-ui,-apple-system,sans-serif"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור מלך השערים</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">👟 ${u.scorerBet}</p></div>`:""}
-  ${myBets.length?`<div class="card" style="font-family:system-ui,-apple-system,sans-serif"><p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 10px;border-bottom:0.5px solid var(--border);padding-bottom:8px">הניחושים שלי (${myBets.length})</p>${myBets.map(m=>{const bet=u.bets[m.id];const betLabel=bet==="2"?m.home:bet==="1"?m.away:"תיקו";const isCorrect=!!(m.result&&bet===m.result);const isWrong=!!(m.result&&bet!==m.result);const resultLabel=m.result==="2"?m.home:m.result==="1"?m.away:"תיקו";const bgColor=isCorrect?"var(--green)":isWrong?"#fde8e8":"var(--chip)";const txtColor=isCorrect?"#fff":isWrong?"var(--red)":"var(--accent)";const icon=isCorrect?" ✅":isWrong?" ❌":"";return "<div style='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)'><div style='flex:1;min-width:0'><p style='margin:0;font-size:13px;color:var(--text)'>"+m.home+" נ׳ "+m.away+"</p><p style='margin:0;font-size:11px;color:var(--muted)'>"+m.date+" · "+m.time+"</p>"+(m.result?"<p style='margin:2px 0 0;font-size:11px;color:var(--muted)'>תוצאה: "+resultLabel+"</p>":"")+"</div><span style='font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;background:"+bgColor+";color:"+txtColor+"'>"+betLabel+icon+"</span></div>";}).join("")}</div>`:""}`;
+  ${u.winnerBet?`<div class="card" style="border:1.5px solid var(--accent);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור אלופת המונדיאל</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">🌍 ${u.winnerBet}</p></div>`:""}
+  ${u.scorerBet?`<div class="card" style="border:1.5px solid var(--green);margin-bottom:10px"><p style="font-size:12px;color:var(--muted);font-weight:600;margin:0 0 2px">הימור מלך השערים</p><p style="font-size:15px;font-weight:700;color:var(--text);margin:0">👟 ${u.scorerBet}</p></div>`:""}
+  ${myBets.length?`<div class="card"><p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 10px;border-bottom:0.5px solid var(--border);padding-bottom:8px">⚽ ניחושי שלב הבתים (${myBets.length})</p>${myBets.map(betRow).join("")}</div>`:""}
+  ${myKoBets.length?`<div class="card" style="margin-top:10px"><p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 10px;border-bottom:0.5px solid var(--border);padding-bottom:8px">🏆 ניחושי נוקאאוט (${myKoBets.length})</p>${myKoBets.map(betRow).join("")}</div>`:""}`;
   setTimeout(()=>{const lb=qs("#logout-btn");if(lb)lb.onclick=logout;},0);
 }
 
@@ -1170,7 +1224,7 @@ function renderAdmin(){
   overlay.appendChild(tb);
 
   const tabBar=el("div","tab-bar");tabBar.style.margin="10px 16px 4px";
-  [["results","תוצאות"],["users","משתמשים"],["depts","מחלקות"],["scorers","מלך שערים"],["prizes","פרסים"],["security","🔐 אבטחה"],["backup","💾 גיבוי"]].forEach(([id,label])=>{
+  [["results","תוצאות"],["knockout","🏆 נוקאאוט"],["users","משתמשים"],["depts","מחלקות"],["scorers","מלך שערים"],["prizes","פרסים"],["security","🔐 אבטחה"],["backup","💾 גיבוי"]].forEach(([id,label])=>{
     const b=el("button","tab-btn"+(state.adminTab===id?" active":""));b.textContent=label;
     b.onclick=()=>{
       state.adminTab=id;
@@ -1191,12 +1245,156 @@ function renderAdmin(){
 async function renderAdminContent(content){
   content.innerHTML="";
   if(state.adminTab==="results") renderAdminResults(content);
+  else if(state.adminTab==="knockout") await renderAdminKnockout(content);
   else if(state.adminTab==="users") await renderAdminUsers(content);
   else if(state.adminTab==="depts") renderAdminDepts(content);
   else if(state.adminTab==="scorers") renderAdminScorers(content);
   else if(state.adminTab==="prizes") renderAdminPrizes(content);
   else if(state.adminTab==="security") await renderAdminSecurity(content);
   else if(state.adminTab==="backup") await renderAdminBackup(content);
+}
+
+// ── Admin Knockout Tab ────────────────────────────────────────────────────────
+const STAGE_LABELS={"LAST_16":"שלב 32 האחרונות","QUARTER_FINALS":"רבע גמר","SEMI_FINALS":"חצי גמר","THIRD_PLACE":"משחק מקום שלישי","FINAL":"גמר"};
+const STAGE_KEYS=["LAST_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"];
+
+async function saveKnockoutToFirebase(){
+  await fsSaveSettings({knockoutMatches:KNOCKOUT_MATCHES.map(m=>({...m}))});
+}
+
+async function renderAdminKnockout(content){
+  const info=el("div","card");
+  info.innerHTML=`<p style="font-weight:700;font-size:14px;color:var(--text);margin:0 0 4px">🏆 ניהול משחקי נוקאאוט</p>
+    <p style="font-size:12px;color:var(--muted);margin:0">עדכן נבחרות חסרות, תוצאות, והוסף משחקים לשלבים הבאים</p>`;
+  content.appendChild(info);
+
+  // כפתור + הוסף משחק
+  const addBtn=el("button","btn");
+  addBtn.style.cssText="margin-bottom:10px;background:var(--accent);font-size:13px;padding:10px";
+  addBtn.textContent="+ הוסף משחק";
+  addBtn.onclick=()=>showAddKnockoutMatch(content);
+  content.appendChild(addBtn);
+
+  // רשימה לפי שלב
+  STAGE_KEYS.forEach(stage=>{
+    const stageMatches=KNOCKOUT_MATCHES.filter(m=>m.stage===stage);
+    if(!stageMatches.length)return;
+
+    const stageTitle=el("p");
+    stageTitle.style.cssText="font-weight:700;font-size:13px;color:var(--text);margin:12px 0 6px;padding-bottom:4px;border-bottom:0.5px solid var(--border)";
+    stageTitle.textContent=STAGE_LABELS[stage]||stage;
+    content.appendChild(stageTitle);
+
+    stageMatches.forEach(m=>{
+      const card=el("div","card");
+      card.style.border=m.result?"1.5px solid var(--green)":"0.5px solid var(--border)";
+      card.style.marginBottom="8px";
+
+      let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;color:var(--muted)">${m.date} · ${m.time}${m.city?" · "+m.city:""}</span>
+        ${m.result?`<button class="ko-clear-btn" data-id="${m.id}" style="font-size:10px;padding:2px 8px;border-radius:6px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">✕ נקה</button>`:""}
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <input class="ko-home" data-id="${m.id}" value="${m.home||""}" placeholder="נבחרת בית" style="flex:1;padding:6px 10px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg);font-size:12px;color:var(--text);direction:rtl"/>
+        <span style="align-self:center;color:var(--muted);font-size:11px;flex-shrink:0">נ׳</span>
+        <input class="ko-away" data-id="${m.id}" value="${m.away||""}" placeholder="נבחרת אורח" style="flex:1;padding:6px 10px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg);font-size:12px;color:var(--text);direction:rtl"/>
+      </div>
+      <div style="display:flex;gap:6px">
+        ${[["2",m.home||"בית"],["X","תיקו"],["1",m.away||"אורח"]].map(([v,label])=>`
+          <button class="ko-result-btn" data-id="${m.id}" data-val="${v}"
+            style="flex:1;padding:6px 4px;border-radius:8px;cursor:pointer;border:${m.result===v?"none":"0.5px solid var(--border)"};
+            background:${m.result===v?"var(--green)":"var(--chip)"};color:${m.result===v?"#fff":"var(--muted)"};font-size:10px;font-weight:600">
+            ${v} – ${String(label).length>6?String(label).slice(0,6)+"…":String(label)}
+          </button>`).join("")}
+      </div>`;
+      card.innerHTML=h;
+      content.appendChild(card);
+    });
+  });
+
+  // Wire buttons
+  content.querySelectorAll(".ko-home,.ko-away").forEach(inp=>{
+    inp.onblur=async()=>{
+      const id=inp.dataset.id;
+      const m=KNOCKOUT_MATCHES.find(x=>x.id===id);
+      if(!m)return;
+      const homeInp=content.querySelector(`.ko-home[data-id="${id}"]`);
+      const awayInp=content.querySelector(`.ko-away[data-id="${id}"]`);
+      m.home=homeInp.value.trim()||null;
+      m.away=awayInp.value.trim()||null;
+      await saveKnockoutToFirebase();
+    };
+  });
+
+  content.querySelectorAll(".ko-result-btn").forEach(btn=>{
+    btn.onclick=async()=>{
+      const id=btn.dataset.id, val=btn.dataset.val;
+      const m=KNOCKOUT_MATCHES.find(x=>x.id===id);
+      if(!m)return;
+      // וודא שיש נבחרות לפני סימון תוצאה
+      const homeInp=content.querySelector(`.ko-home[data-id="${id}"]`);
+      const awayInp=content.querySelector(`.ko-away[data-id="${id}"]`);
+      if(homeInp)m.home=homeInp.value.trim()||m.home;
+      if(awayInp)m.away=awayInp.value.trim()||m.away;
+      m.result=m.result===val?null:val;
+      m.locked=!!m.result;
+      await saveKnockoutToFirebase();
+      await recalcAllPoints();
+      renderAdminContent(content);
+    };
+  });
+
+  content.querySelectorAll(".ko-clear-btn").forEach(btn=>{
+    btn.onclick=async()=>{
+      const m=KNOCKOUT_MATCHES.find(x=>x.id===btn.dataset.id);
+      if(!m)return;
+      m.result=null;m.locked=false;
+      await saveKnockoutToFirebase();
+      await recalcAllPoints();
+      renderAdminContent(content);
+    };
+  });
+}
+
+function showAddKnockoutMatch(content){
+  const existing=qs("#add-ko-form");if(existing)existing.remove();
+  const form=el("div","card");form.id="add-ko-form";
+  form.style.cssText="border:1.5px solid var(--accent);margin-bottom:10px";
+  form.innerHTML=`<p style="font-weight:700;font-size:13px;color:var(--text);margin:0 0 10px">הוספת משחק נוקאאוט</p>
+  <div style="display:flex;gap:6px;margin-bottom:8px">
+    <input id="ko-add-home" class="input" placeholder="נבחרת בית" style="font-size:13px"/>
+    <input id="ko-add-away" class="input" placeholder="נבחרת אורח" style="font-size:13px"/>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:8px">
+    <input id="ko-add-date" class="input" placeholder="תאריך (למשל: 5 יולי)" style="font-size:13px"/>
+    <input id="ko-add-time" class="input" placeholder="שעה (למשל: 22:00)" style="font-size:13px"/>
+  </div>
+  <input id="ko-add-city" class="input" placeholder="עיר (אופציונלי)" style="font-size:13px;margin-bottom:8px"/>
+  <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">שלב:</label>
+  <select id="ko-add-stage" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg);font-size:13px;color:var(--text);direction:rtl;margin-bottom:10px">
+    ${STAGE_KEYS.map(s=>`<option value="${s}">${STAGE_LABELS[s]}</option>`).join("")}
+  </select>
+  <div style="display:flex;gap:8px">
+    <button id="ko-add-ok" class="btn" style="margin-top:0">הוסף</button>
+    <button id="ko-add-cancel" class="btn" style="margin-top:0;background:transparent;color:var(--muted);border:0.5px solid var(--border)">ביטול</button>
+  </div>`;
+  content.insertBefore(form,content.children[1]);
+
+  qs("#ko-add-cancel").onclick=()=>form.remove();
+  qs("#ko-add-ok").onclick=async()=>{
+    const home=qs("#ko-add-home").value.trim();
+    const away=qs("#ko-add-away").value.trim();
+    const date=qs("#ko-add-date").value.trim();
+    const time=qs("#ko-add-time").value.trim();
+    const city=qs("#ko-add-city").value.trim();
+    const stage=qs("#ko-add-stage").value;
+    if(!date||!time){alert("תאריך ושעה חובה");return;}
+    const newId="ko_"+Date.now();
+    KNOCKOUT_MATCHES.push({id:newId,stage,home:home||null,away:away||null,date,time,city:city||null,result:null,locked:false});
+    await saveKnockoutToFirebase();
+    form.remove();
+    renderAdminContent(content);
+  };
 }
 
 function renderAdminResults(content){
@@ -1570,32 +1768,6 @@ async function renderAdminBackup(content){
     <p style="font-size:12px;color:var(--muted);margin:0">הורד גיבוי מלא של כל המשתמשים וניחושיהם. שמור את הקובץ במחשב. לשחזור – העלה קובץ גיבוי.</p>`;
   content.appendChild(info);
 
-  // כפתור ייצוא Excel (CSV)
-  const csvBtn=el("button","btn");csvBtn.style.cssText="margin-top:10px;background:#1a5e2a;font-size:13px;padding:10px";
-  csvBtn.textContent="📊 ייצוא משתתפים לאקסל (CSV)";
-  csvBtn.onclick=async()=>{
-    csvBtn.textContent="...טוען";csvBtn.disabled=true;
-    const allUsers=await fsGetAllUsers();
-    // מיין לפי נקודות
-    allUsers.sort((a,b)=>(b.points||0)-(a.points||0));
-    const rows=[["שם","יחידה","נקודות"]];
-    allUsers.forEach(u=>{
-      rows.push([u.name||"",u.dept||"",(u.points||0).toString()]);
-    });
-    // BOM לעברית באקסל
-    const bom="\uFEFF";
-    const csv=bom+rows.map(r=>r.map(v=>`"${v.replace(/"/g,'""')}"`).join(",")).join("\n");
-    const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");
-    a.href=url;
-    a.download=`משתתפים-מונדיאל-${new Date().toLocaleDateString("he-IL").replace(/\//g,"-")}.csv`;
-    a.click();URL.revokeObjectURL(url);
-    csvBtn.textContent="✓ קובץ הורד!";csvBtn.disabled=false;
-    setTimeout(()=>csvBtn.textContent="📊 ייצוא משתתפים לאקסל (CSV)",3000);
-  };
-  content.appendChild(csvBtn);
-
   // כפתור ייצוא
   const exportBtn=el("button","btn");exportBtn.style.marginTop="10px";exportBtn.textContent="⬇️ הורד גיבוי עכשיו";
   exportBtn.onclick=async()=>{
@@ -1827,7 +1999,7 @@ async function showUserBetsEditor(content, userName){
     const newScorer=qs("#scorer-select")?qs("#scorer-select").value||null:freshUser.scorerBet;
     const newWinner=qs("#winner-select")?qs("#winner-select").value||null:freshUser.winnerBet;
     const updated={...freshUser,bets:currentBets,scorerBet:newScorer,winnerBet:newWinner};
-    const pts=calcPoints(updated,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+    const pts=calcPoints(updated,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
     updated.points=pts;
     await setDoc(doc(db,"users",updated.name.toLowerCase()),updated);
     qs("#save-bets-btn").textContent="✓ נשמר! " + pts + " נקודות";
@@ -1847,11 +2019,17 @@ async function init(){
     }
     state.scorers=sc;
   }
-  if(settings.prizes)state.prizes=settings.prizes;
-  // בדיקה – אם Firebase מחזיר רשימה ישנה נאפס לברירת מחדל החדשה
+  if(settings.prizes)state.prizes={...state.prizes,...settings.prizes};
   const isOldDepts=(d)=>d&&d.some(x=>x==="מנהלה"||x==="שיווק"||x==="מפעל"||x==="שרשרת אספקה");
   if(settings.departments&&!isOldDepts(settings.departments)) state.departments=settings.departments;
   else { state.departments=[...DEFAULT_DEPARTMENTS]; await fsSaveSettings({departments:[...DEFAULT_DEPARTMENTS]}); }
+  if(settings.knockoutMatches&&settings.knockoutMatches.length){
+    settings.knockoutMatches.forEach(sm=>{
+      const m=KNOCKOUT_MATCHES.find(x=>x.id===sm.id);
+      if(m){Object.assign(m,sm);}
+      else{KNOCKOUT_MATCHES.push(sm);}
+    });
+  }
   if(settings.matches){
     settings.matches.forEach(sm=>{
       const m=state.matches.find(x=>x.id===sm.id);
@@ -1866,7 +2044,7 @@ async function init(){
       const me=users.find(u=>u.name.toLowerCase()===state.user.name.toLowerCase());
       if(me){
         state.user={...state.user,...me};
-        const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+        const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
         if(state.user.points!==pts){
           state.user.points=pts;
           await fsSaveUser({...state.user,points:pts});
@@ -1878,15 +2056,21 @@ async function init(){
   });
   fsListenSettings(settings=>{
     if(settings.scorers)state.scorers=settings.scorers;
-    if(settings.prizes)state.prizes=settings.prizes;
+    if(settings.prizes)state.prizes={...state.prizes,...settings.prizes};
     if(settings.departments&&!isOldDepts(settings.departments))state.departments=settings.departments;
+    if(settings.knockoutMatches&&settings.knockoutMatches.length){
+      settings.knockoutMatches.forEach(sm=>{
+        const m=KNOCKOUT_MATCHES.find(x=>x.id===sm.id);
+        if(m){Object.assign(m,sm);}
+        else{KNOCKOUT_MATCHES.push(sm);}
+      });
+    }
     if(settings.matches){
       settings.matches.forEach(sm=>{
         const m=state.matches.find(x=>x.id===sm.id);
         if(m){m.result=sm.result||null;m.locked=!!sm.locked;}
       });
     }
-    // רנדר מחדש רק אם המשתמש מחובר ובמסך הרלוונטי
     if(state.user&&["matches","prizes","scorer","winner"].includes(state.screen))render();
   });
 
