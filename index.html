@@ -741,13 +741,14 @@ async function fetchKnockoutMatches(){
 
 async function renderKnockout(area){
   const matches=await fetchKnockoutMatches();
-  const stages={
-    "LAST_16":"שלב 32 האחרונות",
-    "QUARTER_FINALS":"רבע גמר",
-    "SEMI_FINALS":"חצי גמר",
-    "THIRD_PLACE":"🥉 משחק מקום שלישי",
-    "FINAL":"🏆 הגמר"
-  };
+const stages={
+  "LAST_16":"שלב 32 האחרונות",
+  "QUARTER_FINALS":"שמינית גמר",
+  "SEMI_FINALS":"רבע גמר",
+  "FOUR_FINALS":"חצי גמר",
+  "THIRD_PLACE":"🥉 משחק מקום שלישי",
+  "FINAL":"🏆 הגמר"
+};
   const byStage={};
   matches.forEach(m=>{
     if(!byStage[m.stage])byStage[m.stage]=[];
@@ -1255,8 +1256,8 @@ async function renderAdminContent(content){
 }
 
 // ── Admin Knockout Tab ────────────────────────────────────────────────────────
-const STAGE_LABELS={"LAST_16":"שלב 32 האחרונות","QUARTER_FINALS":"רבע גמר","SEMI_FINALS":"חצי גמר","THIRD_PLACE":"משחק מקום שלישי","FINAL":"גמר"};
-const STAGE_KEYS=["LAST_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"];
+const STAGE_LABELS={"LAST_16":"שלב 32 האחרונות","QUARTER_FINALS":"שמינית גמר","SEMI_FINALS":"רבע גמר","FOUR_FINALS":"חצי גמר","THIRD_PLACE":"משחק מקום שלישי","FINAL":"גמר"};
+const STAGE_KEYS=["LAST_16","QUARTER_FINALS","SEMI_FINALS","FOUR_FINALS","THIRD_PLACE","FINAL"];
 
 async function saveKnockoutToFirebase(){
   await fsSaveSettings({knockoutMatches:KNOCKOUT_MATCHES.map(m=>({...m}))});
