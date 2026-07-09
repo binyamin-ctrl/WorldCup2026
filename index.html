@@ -522,9 +522,8 @@ function screenTitle(){
 function renderMatches(area){
   area.innerHTML="";
 
-  // 2 לשוניות בלבד: שלב בתים / שלב נוקאאוט
   const mainTabs=el("div","tab-bar");mainTabs.style.margin="0 0 10px";
-  [["groups","⚽ שלב הבתים"],["knockout","🏆 שלב הנוקאאוט"]].forEach(([id,label])=>{
+  [["groups","⚽ משחקי המונדיאל עד רבע גמר"],["knockout","🏆 שלב הנוקאאוט"]].forEach(([id,label])=>{
     const b=el("button","tab-btn"+(state.matchTab===id?" active":""));
     b.textContent=label;
     b.onclick=()=>{state.matchTab=id;renderMatches(area);};
@@ -541,6 +540,19 @@ function renderMatches(area){
   banner.style.cssText="background:var(--chip);border-radius:10px;padding:9px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px";
   banner.innerHTML=`<span style="font-size:16px;flex-shrink:0">⏰</span><p style="margin:0;font-size:12px;color:var(--muted);line-height:1.5">ניתן לנחש עד תחילת המשחק. עם פתיחת המשחק מערכת הניחושים תנעל ולא ניתן יהיה לשנות אותם.</p>`;
   area.appendChild(banner);
+
+  // שלב 32 האחרונות + שמינית גמר מה-KNOCKOUT_MATCHES
+  const earlyKoStages=["LAST_16","QUARTER_FINALS"];
+  const earlyKoLabels={"LAST_16":"🏆 שלב 32 האחרונות","QUARTER_FINALS":"🏆 שמינית גמר"};
+  earlyKoStages.forEach(stage=>{
+    const stageMatches=KNOCKOUT_MATCHES.filter(m=>m.stage===stage);
+    if(!stageMatches.length)return;
+    const stageTitle=el("p");
+    stageTitle.style.cssText="font-weight:700;font-size:14px;color:var(--text);margin:14px 0 6px;padding-bottom:4px;border-bottom:0.5px solid var(--border)";
+    stageTitle.textContent=earlyKoLabels[stage];
+    area.appendChild(stageTitle);
+    stageMatches.forEach(m=>area.appendChild(knockoutMatchCard(m)));
+  });
 
   // כל הבתים אחד מתחת לשני
   Object.keys(GROUPS).forEach(g=>{
@@ -741,93 +753,104 @@ async function fetchKnockoutMatches(){
 
 async function renderKnockout(area){
   const matches=await fetchKnockoutMatches();
-const stages={
-  "LAST_16":"שלב 32 האחרונות",
-  "QUARTER_FINALS":"שמינית גמר",
-  "SEMI_FINALS":"רבע גמר",
-  "FOUR_FINALS":"חצי גמר",
-  "THIRD_PLACE":"🥉 משחק מקום שלישי",
-  "FINAL":"🏆 הגמר"
-};
+  // רק רבע גמר ואילך
+  const stages={
+    "SEMI_FINALS":"🏆 רבע גמר",
+    "FOUR_FINALS":"🏆 חצי גמר",
+    "THIRD_PLACE":"🥉 משחק מקום שלישי",
+    "FINAL":"🏆 הגמר"
+  };
   const byStage={};
   matches.forEach(m=>{
     if(!byStage[m.stage])byStage[m.stage]=[];
     byStage[m.stage].push(m);
   });
+  let hasAny=false;
   Object.entries(stages).forEach(([stageKey,stageLabel])=>{
     const stageMatches=byStage[stageKey];
     if(!stageMatches||!stageMatches.length)return;
+    hasAny=true;
     const title=el("p");
     title.style.cssText="font-weight:700;font-size:14px;color:var(--text);margin:14px 0 6px;padding-bottom:4px;border-bottom:0.5px solid var(--border)";
     title.textContent=stageLabel;
     area.appendChild(title);
-    stageMatches.forEach(m=>{
-      const months={"יוני":6,"יולי":7};
+    stageMatches.forEach(m=>area.appendChild(knockoutMatchCard(m)));
+  });
+  if(!hasAny){
+    const info=el("div","card");
+    info.innerHTML=`<div style="text-align:center;padding:10px"><p style="font-size:28px;margin:0 0 8px">⏳</p><p style="font-weight:700;font-size:15px;color:var(--text);margin:0 0 4px">משחקי רבע הגמר יתחילו בקרוב</p><p style="font-size:13px;color:var(--muted);margin:0">הניחושים ייפתחו ברגע שהנבחרות יתבררו</p></div>`;
+    area.appendChild(info);
+  }
+}
+
+// כרטיס משחק נוקאאוט – משותף לשתי הלשוניות
+function knockoutMatchCard(m){
+  const months={"יוני":6,"יולי":7,"אוגוסט":8};
+  let isLocked=m.locked||!!m.result;
+  if(!isLocked&&m.date&&m.time&&m.date!=="טרם נקבע"){
+    try{
       const parts=m.date.split(" ");
       const day=parseInt(parts[0]),month=months[parts[1]];
       const [hh,mm]=m.time.split(":").map(Number);
       const kickoff=new Date(`2026-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}T${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00+03:00`);
-      const isLocked=kickoff<=new Date()||!!m.result;
-      const userBet=state.user?.bets?.[m.id];
-      const result=m.result||null;
-      const betResult=userBet&&result?(userBet===result?"win":"loss"):null;
-      const card=el("div","card");
-      let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:11px;color:var(--muted)">${m.date} · ${m.time}${m.city?" · "+m.city:""}</span>`;
-      if(betResult==="win")h+=`<span class="badge badge-green">+5 ✓</span>`;
-      else if(betResult==="loss")h+=`<span class="badge badge-red">0</span>`;
-      else if(isLocked&&!result)h+=`<span style="font-size:11px;color:var(--muted)">🔒</span>`;
-      h+=`</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span style="font-weight:600;font-size:13px;color:var(--text);flex:1">${m.home||"⏳ טרם נקבע"}</span>
-        <span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 6px;flex-shrink:0">נ׳</span>
-        <span style="font-weight:600;font-size:13px;color:var(--text);flex:1;text-align:left">${m.away||"⏳ טרם נקבע"}</span>
-      </div>`;
-      card.innerHTML=h;
-      if(m.home&&m.away&&(!isLocked||userBet)){
-        const chipsDiv=el("div","bet-chips");
-        // בשלב נוקאאוט – אין תיקו (אלא אם כבר סומן בעבר, לאפשר הסרה)
-        const isKnockout=["LAST_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"].includes(m.stage);
-        [[2,m.home],["X","תיקו"],[1,m.away]].forEach(([v,label])=>{
-          const isSelected=userBet===String(v);
-          const isDrawBlocked=isKnockout&&v==="X"&&!isSelected; // תיקו חסום אם לא נבחר
-          const b=el("button","bet-chip"+(isSelected?" sel":"")+(isLocked&&!isSelected?" disabled":"")+(isDrawBlocked?" disabled":""));
-          b.style.opacity=(isLocked&&!isSelected)||isDrawBlocked?"0.32":"1";
-          b.title=isDrawBlocked?"בשלב הנוקאאוט אין תיקו":"";
-          b.innerHTML=`<span>${v}</span><span style="font-size:9px">${String(label).length>6?String(label).slice(0,6)+"…":String(label)}</span>`;
-          if(!isLocked&&!isDrawBlocked)b.onclick=async()=>{
-            const newVal=isSelected?null:String(v);
-            if(newVal===null){
-              delete state.user.bets[m.id];
-              const pts=calcPoints(state.user,state.matches,{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
-              state.user.points=pts;
-              await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{[`bets.${m.id}`]:deleteField(),points:pts});
-            } else {
-              state.user.bets[m.id]=newVal;
-              await saveBet(m.id,newVal);
-            }
-            renderMatchesRefresh();
-          };
-          chipsDiv.appendChild(b);
-        });
-        card.appendChild(chipsDiv);
-        // הודעה למי שסימן תיקו בעבר
-        if(isKnockout&&userBet==="X"){
-          const warn=el("p");
-          warn.style.cssText="font-size:11px;color:var(--red);text-align:center;margin:4px 0 0;font-weight:600";
-          warn.textContent="⚠️ בשלב הנוקאאוט אין תיקו – לחץ על X להסרה ובחר נבחרת";
-          card.appendChild(warn);
+      isLocked=kickoff<=new Date();
+    }catch(e){}
+  }
+  const userBet=state.user?.bets?.[m.id];
+  const result=m.result||null;
+  const betResult=userBet&&result?(userBet===result?"win":"loss"):null;
+  const isKnockout=true; // כל משחק כאן הוא נוקאאוט – אין תיקו
+  const card=el("div","card");
+  let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="font-size:11px;color:var(--muted)">${m.date} · ${m.time}</span>`;
+  if(betResult==="win")h+=`<span class="badge badge-green">+5 ✓</span>`;
+  else if(betResult==="loss")h+=`<span class="badge badge-red">0</span>`;
+  else if(isLocked&&!result)h+=`<span style="font-size:11px;color:var(--muted)">🔒</span>`;
+  h+=`</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+    <span style="font-weight:600;font-size:13px;color:var(--text);flex:1">${m.home||"⏳ טרם נקבע"}</span>
+    <span style="font-size:11px;color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 6px;flex-shrink:0">נ׳</span>
+    <span style="font-weight:600;font-size:13px;color:var(--text);flex:1;text-align:left">${m.away||"⏳ טרם נקבע"}</span>
+  </div>`;
+  card.innerHTML=h;
+  if(m.home&&m.away&&(!isLocked||userBet)){
+    const chipsDiv=el("div","bet-chips");
+    [[2,m.home],["X","תיקו"],[1,m.away]].forEach(([v,label])=>{
+      const isSelected=userBet===String(v);
+      const isDrawBlocked=v==="X"&&!isSelected;
+      const b=el("button","bet-chip"+(isSelected?" sel":"")+(isLocked&&!isSelected?" disabled":"")+(isDrawBlocked?" disabled":""));
+      b.style.opacity=(isLocked&&!isSelected)||isDrawBlocked?"0.32":"1";
+      b.style.cursor=isDrawBlocked?"not-allowed":"pointer";
+      b.innerHTML=`<span>${v}</span><span style="font-size:9px">${String(label).length>6?String(label).slice(0,6)+"…":String(label)}</span>`;
+      if(!isLocked&&!isDrawBlocked)b.onclick=async()=>{
+        const newVal=isSelected?null:String(v);
+        if(newVal===null){
+          delete state.user.bets[m.id];
+          const pts=calcPoints(state.user,[...state.matches,...KNOCKOUT_MATCHES],{topScorer:state.prizes.topScorer||null},state.prizes,state.prizes.winner||null);
+          state.user.points=pts;
+          await updateDoc(doc(db,"users",state.user.name.toLowerCase()),{[`bets.${m.id}`]:deleteField(),points:pts});
+        } else {
+          state.user.bets[m.id]=newVal;
+          await saveBet(m.id,newVal);
         }
-        card.appendChild(chipsDiv);
-      } else if(!m.home||!m.away){
-        const p=el("p");
-        p.style.cssText="font-size:11px;color:var(--muted);text-align:center;margin:4px 0 0";
-        p.textContent="הניחוש ייפתח ברגע שהנבחרות יתבררו";
-        card.appendChild(p);
-      }
-      area.appendChild(card);
+        renderMatchesRefresh();
+      };
+      chipsDiv.appendChild(b);
     });
-  });
+    card.appendChild(chipsDiv);
+    if(userBet==="X"){
+      const warn=el("p");
+      warn.style.cssText="font-size:11px;color:var(--red);text-align:center;margin:4px 0 0;font-weight:600";
+      warn.textContent="⚠️ בנוקאאוט אין תיקו – לחץ X להסרה ובחר נבחרת";
+      card.appendChild(warn);
+    }
+  } else if(!m.home||!m.away){
+    const p=el("p");
+    p.style.cssText="font-size:11px;color:var(--muted);text-align:center;margin:4px 0 0";
+    p.textContent="הניחוש ייפתח ברגע שהנבחרות יתבררו";
+    card.appendChild(p);
+  }
+  return card;
 }
 
 // ── Scorer screen ─────────────────────────────────────────────────────────────
