@@ -415,16 +415,25 @@ function renderLogin(app){
       const n=nameIn().value.trim();
       if(!n)return;
       const existing=await fsGetUser(n);
-      isNew=!existing;
-      statusDiv().style.display="flex";
+      if(!existing){
+        // רישום חסום – משתמש לא קיים
+        statusDiv().style.cssText="display:flex;align-items:center;gap:8px;background:#fde8e8;border-radius:10px;padding:8px 12px";
+        statusDiv().innerHTML=`<span>🔒</span><p style="margin:0;font-size:13px;color:var(--red)">הרישום למערכת הסתיים. פנה למנהל האפליקציה.</p>`;
+        qs("#ln-dept-wrap").style.display="none";
+        qs("#ln-pwd-wrap").style.display="none";
+        qs("#ln-pwd2-wrap").style.display="none";
+        if(submitBtn())submitBtn().disabled=true;
+        return;
+      }
+      isNew=false;
       statusDiv().style.cssText="display:flex;align-items:center;gap:8px;background:var(--chip);border-radius:10px;padding:8px 12px";
-      statusDiv().innerHTML=isNew?`<span>✨</span><p style="margin:0;font-size:13px;color:var(--text)">משתמש חדש! בחר מחלקה וצור סיסמה.</p>`:`<span>👋</span><p style="margin:0;font-size:13px;color:var(--text)">ברוך שובך! הזן את הסיסמה שלך.</p>`;
-      if(existing){selDept=existing.dept;}
-      qs("#ln-dept-wrap").style.display=isNew?"block":"none";
+      statusDiv().innerHTML=`<span>👋</span><p style="margin:0;font-size:13px;color:var(--text)">ברוך שובך! הזן את הסיסמה שלך.</p>`;
+      selDept=existing.dept;
+      qs("#ln-dept-wrap").style.display="none";
       qs("#ln-pwd-wrap").style.display="block";
-      qs("#ln-pwd-label").textContent=isNew?"סיסמה חדשה":"סיסמה";
-      qs("#ln-pwd2-wrap").style.display=isNew?"block":"none";
-      submitBtn().textContent=isNew?"צור חשבון ←":"כניסה ←";
+      qs("#ln-pwd-label").textContent="סיסמה";
+      qs("#ln-pwd2-wrap").style.display="none";
+      submitBtn().textContent="כניסה ←";
       checkReady();
     };
 
