@@ -322,6 +322,7 @@ async function recalcAllPoints(){
   const allUsers=await fsGetAllUsers();
   const topScorer=state.prizes.topScorer||null;
   const winnerResult=state.prizes.winner||null;
+  console.log("recalc – topScorer:", topScorer, "| winner:", winnerResult);
   const updates=allUsers.map(async u=>{
     const pts=calcPoints(u,state.matches,{topScorer},state.prizes,winnerResult);
     if(u.points!==pts){
@@ -2072,6 +2073,8 @@ async function init(){
     state.scorers=sc;
   }
   if(settings.prizes)state.prizes={...state.prizes,...settings.prizes};
+  if(settings.topScorer)state.prizes.topScorer=settings.topScorer;
+  if(settings.winner)state.prizes.winner=settings.winner;
   const isOldDepts=(d)=>d&&d.some(x=>x==="מנהלה"||x==="שיווק"||x==="מפעל"||x==="שרשרת אספקה");
   if(settings.departments&&!isOldDepts(settings.departments)) state.departments=settings.departments;
   else { state.departments=[...DEFAULT_DEPARTMENTS]; await fsSaveSettings({departments:[...DEFAULT_DEPARTMENTS]}); }
@@ -2109,6 +2112,8 @@ async function init(){
   fsListenSettings(settings=>{
     if(settings.scorers)state.scorers=settings.scorers;
     if(settings.prizes)state.prizes={...state.prizes,...settings.prizes};
+    if(settings.topScorer)state.prizes.topScorer=settings.topScorer;
+    if(settings.winner)state.prizes.winner=settings.winner;
     if(settings.departments&&!isOldDepts(settings.departments))state.departments=settings.departments;
     if(settings.knockoutMatches&&settings.knockoutMatches.length){
       settings.knockoutMatches.forEach(sm=>{
