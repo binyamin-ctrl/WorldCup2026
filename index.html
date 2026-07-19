@@ -323,7 +323,7 @@ async function recalcAllPoints(){
   const topScorer=state.prizes.topScorer||null;
   const winnerResult=state.prizes.winner||null;
   const updates=allUsers.map(async u=>{
-    const pts=calcPoints(u,[...state.matches,...KNOCKOUT_MATCHES],{topScorer},state.prizes,winnerResult);
+    const pts=calcPoints(u,state.matches,{topScorer},state.prizes,winnerResult);
     if(u.points!==pts){
       await fsSaveUser({...u,points:pts});
     }
